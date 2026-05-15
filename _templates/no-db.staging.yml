@@ -1,0 +1,44 @@
+# ============================================================
+# TEMPLATE — Service sans base de données (ex: frontend NextJS)
+# Remplacer MY-SERVICE par le nom en kebab-case
+# ============================================================
+
+services:
+  app:
+    image: ghcr.io/chauffagistes/MY-SERVICE:sha-0000000  # mis à jour manuellement
+    environment:
+      NODE_ENV: staging
+      # Variables d'environnement propres au service
+      # NEXT_PUBLIC_API_URL: https://staging.mon-domaine.com
+    secrets:
+      - source: MY_SERVICE_staging_api_key
+        target: api_key
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo  # à ajuster selon la répartition
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.MY-SERVICE-staging.rule=Host(`MY-SERVICE.staging.${DOMAIN}`)"
+        - "traefik.http.routers.MY-SERVICE-staging.entrypoints=websecure"
+        - "traefik.http.routers.MY-SERVICE-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.MY-SERVICE-staging.loadbalancer.server.port=3000"
+
+networks:
+  chauffagistes-net:
+    external: true
+
+secrets:
+  MY_SERVICE_staging_api_key:
+    external: true
