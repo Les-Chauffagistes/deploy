@@ -1,6 +1,6 @@
 services:
   api:
-    image: 192.168.1.201:5000/auth-service-back:sha-2d4cfcb  # mis à jour manuellement
+    image: 192.168.1.201:5000/auth-service-back:sha-4431d06  # mis à jour manuellement
     environment:
       SERVER_PORT: "8080"
       POSTGRES_DB: auth
