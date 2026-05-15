@@ -1,6 +1,6 @@
 services:
   api:
-    image: ghcr.io/les-chauffagistes/heatcoin-service:0.0.0
+    image: 192.168.1.201:5000/heatcoin-service:0.0.0
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://heatcoin:DOCKER-SECRET@heatcoin-prod-db:5432/heatcoin

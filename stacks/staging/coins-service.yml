@@ -1,6 +1,6 @@
 services:
   app:
-    image: ghcr.io/les-chauffagistes/coins-service:sha-2c38648  # mis à jour manuellement
+    image: 192.168.1.201:5000/coins-service:sha-a954f0c  # mis à jour manuellement
     environment:
       NODE_ENV: staging
       SERVER_PORT: "8095"
