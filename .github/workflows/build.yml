@@ -1,0 +1,58 @@
+name: Reusable — Build & Push
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        description: "Nom du service"
+        required: true
+        type: string
+    secrets:
+      ORG_PAT:
+        required: true
+
+jobs:
+  build-push:
+    name: Build & Push
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.ORG_PAT }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ inputs.service-name }}
+          tags: |
+            # SHA court — tous les commits, utilisable en staging
+            type=sha,prefix=sha-,format=short
+            # Branche sanitisée
+            type=ref,event=branch,prefix=branch-
+            # Semver — uniquement sur tag v*, utilisable en prod
+            type=semver,pattern={{version}}
+            # latest — uniquement sur tag v*
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Summary
+        run: |
+          echo "### Image(s) publiée(s) 🐳" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
