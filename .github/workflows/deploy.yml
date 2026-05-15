@@ -77,11 +77,10 @@ jobs:
             --detach=false \
             core
 
-      # Les stacks applicatifs seront ajoutés ici au fur et à mesure
-      # - name: Deploy heatcoin
-      #   run: |
-      #     docker stack deploy \
-      #       -c stacks/${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}/heatcoin.yml \
-      #       --with-registry-auth \
-      #       --detach=false \
-      #       heatcoin
+      - name: Deploy coins-service
+        run: |
+          docker stack deploy \
+            -c stacks/${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}/coins-service.yml \
+            --with-registry-auth \
+            --detach=false \
+            coins-service

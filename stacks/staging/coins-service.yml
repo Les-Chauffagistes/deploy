@@ -1,0 +1,80 @@
+services:
+  app:
+    image: ghcr.io/les-chauffagistes/coins-service:sha-2c38648  # mis à jour manuellement
+    environment:
+      NODE_ENV: staging
+      SERVER_PORT: "8095"
+      DB_HOST: coins-service_db  # DNS Swarm : <stack>_<service>
+      AUTH_SERVICE_URL: auth-service_app:8086/auth  # à ajuster selon le nom du stack auth
+    secrets:
+      - source: coins_staging_db_password
+        target: db_password
+      - source: coins_staging_api_key
+        target: api_key
+      - source: coins_staging_jwt_secret
+        target: jwt_secret
+    networks:
+      - chauffagistes-net
+      - coins-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  db:
+    image: postgres:18.1-alpine3.23
+    environment:
+      POSTGRES_DB: coins
+      POSTGRES_USER: coins
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: coins_staging_db_password
+        target: db_password
+    volumes:
+      - coins-staging-db-data:/var/lib/postgresql/data
+    networks:
+      - coins-staging-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coins"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  coins-staging-db-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  coins-staging-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  coins_staging_db_password:
+    external: true
+  coins_staging_api_key:
+    external: true
+  coins_staging_jwt_secret:
+    external: true
