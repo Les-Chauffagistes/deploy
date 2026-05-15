@@ -84,3 +84,11 @@ jobs:
             --with-registry-auth \
             --detach=false \
             coins-service
+      
+      - name: Deploy auth-service-back
+        run: |
+          docker stack deploy \
+            -c stacks/${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}/auth-service-back.yml \
+            --with-registry-auth \
+            --detach=false \
+            auth-service-back

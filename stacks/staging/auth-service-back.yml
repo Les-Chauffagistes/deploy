@@ -1,22 +1,24 @@
-# ============================================================
-# TEMPLATE — Service avec PostgreSQL + exposition Traefik
-# Remplacer MY-SERVICE (kebab-case) et MY_SERVICE (snake_case)
-# ============================================================
-
 services:
   api:
-    image: 192.168.1.201:5000/auth-service-back:sha-a414bf0  # mis à jour manuellement
+    image: 192.168.1.201:5000/auth-service-back:sha-a1ca5f7  # mis à jour manuellement
     environment:
-      NODE_ENV: staging
-      DATABASE_URL: postgres://MY_SERVICE:DOCKER-SECRET@MY-SERVICE-staging-db:5432/MY_SERVICE
+      SERVER_PORT: "8080"
+      POSTGRES_DB: auth
+      DISCORD_CALLBACK_URL: https://auth.staging.swakraft.fr/auth/discord/callback
+      LIGHTNING_CALLBACK_URL: https://auth.staging.swakraft.fr/auth/lightning/callback
+      DB_HOST: auth-service_db
     secrets:
-      - source: MY_SERVICE_staging_db_password
+      - source: auth_staging_db_password
         target: db_password
-      - source: MY_SERVICE_staging_api_key
-        target: api_key
+      - source: auth_staging_discord_client_id
+        target: discord_client_id
+      - source: auth_staging_discord_client_secret
+        target: discord_client_secret
+      - source: auth_staging_jwt_secret
+        target: jwt_secret
     networks:
       - chauffagistes-net
-      - MY-SERVICE-staging-internal
+      - auth-staging-internal
     deploy:
       replicas: 1
       placement:
@@ -32,26 +34,26 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.MY-SERVICE-staging.rule=Host(`MY-SERVICE.staging.${DOMAIN}`)"
-        - "traefik.http.routers.MY-SERVICE-staging.entrypoints=websecure"
-        - "traefik.http.routers.MY-SERVICE-staging.tls.certresolver=letsencrypt"
-        - "traefik.http.services.MY-SERVICE-staging.loadbalancer.server.port=3000"
+        - "traefik.http.routers.auth-staging.rule=Host(`auth.staging.swakraft.fr`)"
+        - "traefik.http.routers.auth-staging.entrypoints=websecure"
+        - "traefik.http.routers.auth-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.auth-staging.loadbalancer.server.port=8080"
 
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: MY_SERVICE
-      POSTGRES_USER: MY_SERVICE
+      POSTGRES_DB: auth
+      POSTGRES_USER: auth
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     secrets:
-      - source: MY_SERVICE_staging_db_password
+      - source: auth_staging_db_password
         target: db_password
     volumes:
-      - MY-SERVICE-staging-db-data:/var/lib/postgresql/data
+      - auth-staging-db-data:/var/lib/postgresql/data
     networks:
-      - MY-SERVICE-staging-internal
+      - auth-staging-internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U MY_SERVICE"]
+      test: ["CMD-SHELL", "pg_isready -U auth"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -69,17 +71,21 @@ services:
           memory: 256M
 
 volumes:
-  MY-SERVICE-staging-db-data:
+  auth-staging-db-data:
 
 networks:
   chauffagistes-net:
     external: true
-  MY-SERVICE-staging-internal:
+  auth-staging-internal:
     driver: overlay
     internal: true
 
 secrets:
-  MY_SERVICE_staging_db_password:
+  auth_staging_db_password:
     external: true
-  MY_SERVICE_staging_api_key:
+  auth_staging_discord_client_id:
+    external: true
+  auth_staging_discord_client_secret:
+    external: true
+  auth_staging_jwt_secret:
     external: true
