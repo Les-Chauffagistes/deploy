@@ -1,0 +1,26 @@
+services:
+  proxy:
+    image: nginx:alpine
+    ports:
+      # Exposé UNIQUEMENT sur l'IP Tailscale — pas accessible depuis internet
+      - "${TAILSCALE_IP}:7777:80"
+    configs:
+      - source: nginx_debug_conf
+        target: /etc/nginx/nginx.conf
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+
+configs:
+  nginx_debug_conf:
+    file: ./nginx.conf  # chargé au moment du docker stack deploy
+
+networks:
+  chauffagistes-net:
+    external: true
