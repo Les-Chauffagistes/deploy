@@ -77,18 +77,21 @@ jobs:
             --detach=false \
             core
 
-      - name: Deploy coins-service
+      - name: Deploy all services
         run: |
-          docker stack deploy \
-            -c stacks/${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}/coins-service.yml \
-            --with-registry-auth \
-            --detach=false \
-            coins-service
-      
-      - name: Deploy auth-service-back
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+          for file in stacks/${ENV}/*.yml; do
+            stack=$(basename "$file" .yml)
+            echo "Deploying $stack..."
+            docker stack deploy \
+              -c "$file" \
+              --with-registry-auth \
+              "$stack"
+          done
+
+      - name: Wait for convergence
         run: |
-          docker stack deploy \
-            -c stacks/${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}/auth-service-back.yml \
-            --with-registry-auth \
-            --detach=false \
-            auth-service-back
+          echo "Attente de la convergence des services..."
+          sleep 10
+          docker stack ls
+          docker service ls
