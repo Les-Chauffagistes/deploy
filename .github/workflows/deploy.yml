@@ -77,7 +77,6 @@ jobs:
           done
           docker stack deploy $COMPOSE_ARGS \
             --with-registry-auth \
-            --detach=false \
             core
 
       - name: Deploy all services
@@ -92,9 +91,58 @@ jobs:
               "$stack"
           done
 
-      - name: Wait for convergence
+      - name: Verify convergence
         run: |
-          echo "Attente de la convergence des services..."
-          sleep 10
-          docker stack ls
+          verify_stack() {
+            local NAMESPACE=$1
+            local TIMEOUT=${2:-120}
+            local INTERVAL=5
+            local ELAPSED=0
+
+            echo "── Vérification stack: $NAMESPACE (timeout ${TIMEOUT}s)"
+
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+              # Récupère les services du namespace qui ne sont pas à leur nombre de replicas cible
+              FAILING=$(docker service ls \
+                --filter "label=com.docker.stack.namespace=${NAMESPACE}" \
+                --format "{{.Name}} {{.Replicas}}" \
+                | awk -F'[/ ]' '$3 != $4 {print $1}')
+
+              if [ -z "$FAILING" ]; then
+                echo "✅ $NAMESPACE convergé"
+                return 0
+              fi
+
+              echo "  En attente : $FAILING ($ELAPSED/${TIMEOUT}s)"
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED + INTERVAL))
+            done
+
+            echo "❌ Timeout — services non convergés dans $NAMESPACE :"
+            docker stack ps "$NAMESPACE" --no-trunc | grep -v "Running"
+            return 1
+          }
+
+          FAILED=0
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+
+          # Core — timeout plus long pour YouTrack (JVM lente au démarrage)
+          verify_stack "core" 180 || FAILED=1
+
+          # Stacks applicatifs
+          for file in stacks/${ENV}/*.yml; do
+            stack=$(basename "$file" .yml)
+            verify_stack "$stack" 120 || FAILED=1
+          done
+
+          if [ $FAILED -eq 1 ]; then
+            echo ""
+            echo "❌ Un ou plusieurs stacks n'ont pas convergé"
+            echo "État global :"
+            docker service ls
+            exit 1
+          fi
+
+          echo ""
+          echo "✅ Tous les stacks sont convergés"
           docker service ls
