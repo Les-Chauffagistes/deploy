@@ -1,6 +1,6 @@
 services:
   youtrack:
-    image: jetbrains/youtrack:2025.3
+    image: jetbrains/youtrack:2026.1.13559
     environment:
       # Base URL finale de l'instance — à ajuster avec ton domaine
       YOUTRACK_BASE_URL: https://youtrack.swakraft.fr
