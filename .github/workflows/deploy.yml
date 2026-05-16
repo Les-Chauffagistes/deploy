@@ -65,17 +65,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy core stack
+      - name: Deploy core stacks
         env:
           DOMAIN: ${{ vars.DOMAIN }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
           TRAEFIK_DASHBOARD_AUTH: ${{ secrets.TRAEFIK_DASHBOARD_AUTH }}
         run: |
-          docker stack deploy \
-            -c stacks/core/traefik.yml \
-            --with-registry-auth \
-            --detach=false \
-            core
+          for file in stacks/core/*.yml; do
+            stack=$(basename "$file" .yml)
+            echo "Deploying core/$stack..."
+            docker stack deploy \
+              -c "$file" \
+              --with-registry-auth \
+              --detach=false \
+              "$stack"
+          done
 
       - name: Deploy all services
         run: |
