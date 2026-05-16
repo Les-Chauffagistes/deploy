@@ -29,10 +29,10 @@ Remplacer dans les deux fichiers :
 
 ```bash
 # Staging
-echo "mot_de_passe_fort" | docker secret create share_viewer_staging_api_key -
+printf "mot_de_passe_fort" | docker secret create share_viewer_staging_api_key -
 
 # Prod
-echo "mot_de_passe_fort" | docker secret create share_viewer_prod_api_key -
+printf "mot_de_passe_fort" | docker secret create share_viewer_prod_api_key -
 
 # Pour les services avec DB, créer aussi :
 # share_viewer_staging_db_password
@@ -44,23 +44,7 @@ echo "mot_de_passe_fort" | docker secret create share_viewer_prod_api_key -
 
 ---
 
-## 4. Déclarer le déploiement dans deploy.yml
-
-Dans `.github/workflows/deploy.yml`, ajouter un step dans le job `deploy` :
-
-```yaml
-- name: Deploy share-viewer
-  run: |
-    docker stack deploy \
-      -c stacks/${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}/share-viewer.yml \
-      --with-registry-auth \
-      --detach=false \
-      share-viewer
-```
-
----
-
-## 5. Ajouter le CI dans le repo du service
+## 4. Ajouter le CI dans le repo du service
 
 Copier `.github/workflows/ci.yml` depuis un autre repo service et adapter :
 
@@ -76,7 +60,7 @@ jobs:
 
 ---
 
-## 6. Répartition des nœuds
+## 5. Répartition des nœuds
 
 Les labels sont appliqués **une seule fois** sur le manager, indépendamment des stack files :
 
