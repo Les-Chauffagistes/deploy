@@ -65,21 +65,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy core stacks
+      - name: Deploy core stack
         env:
           DOMAIN: ${{ vars.DOMAIN }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
           TRAEFIK_DASHBOARD_AUTH: ${{ secrets.TRAEFIK_DASHBOARD_AUTH }}
         run: |
+          COMPOSE_ARGS=""
           for file in stacks/core/*.yml; do
-            stack=$(basename "$file" .yml)
-            echo "Deploying core/$stack..."
-            docker stack deploy \
-              -c "$file" \
-              --with-registry-auth \
-              --detach=false \
-              "$stack"
+            COMPOSE_ARGS="$COMPOSE_ARGS -c $file"
           done
+          docker stack deploy $COMPOSE_ARGS \
+            --with-registry-auth \
+            --detach=false \
+            core
 
       - name: Deploy all services
         run: |
