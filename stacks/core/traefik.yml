@@ -2,24 +2,32 @@ services:
   traefik:
     image: traefik:v3.3
     command:
-      # Swarm provider
-      - "--providers.swarm.endpoint=unix:///var/run/docker.sock"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      # Swarm provider — réseau traefik-public pour joindre les services
+      - "--providers.swarm=true"
       - "--providers.swarm.exposedbydefault=false"
-      - "--providers.swarm.network=chauffagistes-net"
+      - "--providers.swarm.network=traefik-public"
+      # Provider fichier pour la prod standalone existante
+      - "--providers.file.directory=/dynamic"
+      - "--providers.file.watch=true"
       # Entrypoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       # Redirect HTTP → HTTPS
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      # Let's Encrypt
+      # Timeouts WebSocket
+      - "--entrypoints.websecure.transport.respondingTimeouts.readTimeout=3600s"
+      - "--entrypoints.websecure.transport.respondingTimeouts.writeTimeout=3600s"
+      - "--entrypoints.websecure.transport.respondingTimeouts.idleTimeout=3600s"
+      # ACME pour les nouveaux domaines (swakraft.fr, etc.)
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      # Dashboard (désactiver en prod si non nécessaire)
-      - "--api.dashboard=true"
-      - "--log.level=INFO"
     ports:
       - target: 80
         published: 80
@@ -31,31 +39,30 @@ services:
         mode: host
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/traefik/dynamic:/dynamic:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
       - traefik-letsencrypt:/letsencrypt
     networks:
-      - chauffagistes-net
+      - traefik-public
     deploy:
+      replicas: 1
       placement:
         constraints:
-          - node.role == manager
+          - node.labels.ingress == true
       restart_policy:
-        condition: on-failure
-        delay: 5s
+        condition: any
       labels:
         - "traefik.enable=true"
-        # Dashboard
         - "traefik.http.routers.dashboard.rule=Host(`traefik.${DOMAIN}`)"
         - "traefik.http.routers.dashboard.entrypoints=websecure"
         - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
         - "traefik.http.routers.dashboard.service=api@internal"
         - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
-        # Basic auth pour le dashboard (générer avec: htpasswd -nb user password)
         - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
-        - "traefik.http.services.dashboard.loadbalancer.server.port=8080"
 
 volumes:
   traefik-letsencrypt:
 
 networks:
-  chauffagistes-net:
+  traefik-public:
     external: true

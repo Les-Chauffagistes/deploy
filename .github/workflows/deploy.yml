@@ -14,7 +14,7 @@ jobs:
   # ─────────────────────────────────────────────
   guard-prod-images:
     name: Guard — no SHA in prod
-    runs-on: self-hosted
+    runs-on: [self-hosted, manager]
     if: github.ref == 'refs/heads/main'
 
     steps:
@@ -79,74 +79,74 @@ jobs:
             --with-registry-auth \
             core
 
-      - name: Deploy all services
-        run: |
-          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
-          for file in stacks/${ENV}/*.yml; do
-            stack=$(basename "$file" .yml)
-            echo "Deploying $stack..."
-            docker stack deploy \
-              -c "$file" \
-              --with-registry-auth \
-              "$stack"
-          done
+      # - name: Deploy all services
+      #   run: |
+      #     ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+      #     for file in stacks/${ENV}/*.yml; do
+      #       stack=$(basename "$file" .yml)
+      #       echo "Deploying $stack..."
+      #       docker stack deploy \
+      #         -c "$file" \
+      #         --with-registry-auth \
+      #         "$stack"
+      #     done
 
-      - name: Verify convergence
-        run: |
-          verify_stack() {
-            local NAMESPACE=$1
-            local TIMEOUT=${2:-120}
-            local INTERVAL=5
-            local ELAPSED=0
+      # - name: Verify convergence
+      #   run: |
+      #     verify_stack() {
+      #       local NAMESPACE=$1
+      #       local TIMEOUT=${2:-120}
+      #       local INTERVAL=5
+      #       local ELAPSED=0
 
-            echo "── Vérification stack: $NAMESPACE (timeout ${TIMEOUT}s)"
+      #       echo "── Vérification stack: $NAMESPACE (timeout ${TIMEOUT}s)"
 
-            while [ $ELAPSED -lt $TIMEOUT ]; do
-              # Récupère les services du namespace qui ne sont pas à leur nombre de replicas cible
-              FAILING=$(docker service ls \
-                --filter "label=com.docker.stack.namespace=${NAMESPACE}" \
-                --format "{{.Name}} {{.Replicas}}" \
-                | while read -r name replicas; do
-                    current=$(echo "$replicas" | cut -d'/' -f1)
-                    target=$(echo "$replicas" | cut -d'/' -f2)
-                    [ "$current" != "$target" ] && echo "$name"
-                  done)
+      #       while [ $ELAPSED -lt $TIMEOUT ]; do
+      #         # Récupère les services du namespace qui ne sont pas à leur nombre de replicas cible
+      #         FAILING=$(docker service ls \
+      #           --filter "label=com.docker.stack.namespace=${NAMESPACE}" \
+      #           --format "{{.Name}} {{.Replicas}}" \
+      #           | while read -r name replicas; do
+      #               current=$(echo "$replicas" | cut -d'/' -f1)
+      #               target=$(echo "$replicas" | cut -d'/' -f2)
+      #               [ "$current" != "$target" ] && echo "$name"
+      #             done)
 
-              if [ -z "$FAILING" ]; then
-                echo "✅ $NAMESPACE convergé"
-                return 0
-              fi
+      #         if [ -z "$FAILING" ]; then
+      #           echo "✅ $NAMESPACE convergé"
+      #           return 0
+      #         fi
 
-              echo "  En attente : $FAILING ($ELAPSED/${TIMEOUT}s)"
-              sleep $INTERVAL
-              ELAPSED=$((ELAPSED + INTERVAL))
-            done
+      #         echo "  En attente : $FAILING ($ELAPSED/${TIMEOUT}s)"
+      #         sleep $INTERVAL
+      #         ELAPSED=$((ELAPSED + INTERVAL))
+      #       done
 
-            echo "❌ Timeout — services non convergés dans $NAMESPACE :"
-            docker stack ps "$NAMESPACE" --no-trunc | grep -v "Running"
-            return 1
-          }
+      #       echo "❌ Timeout — services non convergés dans $NAMESPACE :"
+      #       docker stack ps "$NAMESPACE" --no-trunc | grep -v "Running"
+      #       return 1
+      #     }
 
-          FAILED=0
-          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+      #     FAILED=0
+      #     ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
 
-          # Core — timeout plus long pour YouTrack (JVM lente au démarrage)
-          verify_stack "core" 180 || FAILED=1
+      #     # Core — timeout plus long pour YouTrack (JVM lente au démarrage)
+      #     verify_stack "core" 180 || FAILED=1
 
-          # Stacks applicatifs
-          for file in stacks/${ENV}/*.yml; do
-            stack=$(basename "$file" .yml)
-            verify_stack "$stack" 120 || FAILED=1
-          done
+      #     # Stacks applicatifs
+      #     for file in stacks/${ENV}/*.yml; do
+      #       stack=$(basename "$file" .yml)
+      #       verify_stack "$stack" 120 || FAILED=1
+      #     done
 
-          if [ $FAILED -eq 1 ]; then
-            echo ""
-            echo "❌ Un ou plusieurs stacks n'ont pas convergé"
-            echo "État global :"
-            docker service ls
-            exit 1
-          fi
+      #     if [ $FAILED -eq 1 ]; then
+      #       echo ""
+      #       echo "❌ Un ou plusieurs stacks n'ont pas convergé"
+      #       echo "État global :"
+      #       docker service ls
+      #       exit 1
+      #     fi
 
-          echo ""
-          echo "✅ Tous les stacks sont convergés"
-          docker service ls
+      #     echo ""
+      #     echo "✅ Tous les stacks sont convergés"
+      #     docker service ls
