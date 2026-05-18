@@ -56,7 +56,7 @@ jobs:
   # ─────────────────────────────────────────────
   deploy:
     name: Deploy (${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }})
-    runs-on: self-hosted
+    runs-on: manager
     needs: [guard-prod-images]
     if: always() && (needs.guard-prod-images.result == 'success' || needs.guard-prod-images.result == 'skipped')
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
