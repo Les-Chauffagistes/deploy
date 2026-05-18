@@ -15,12 +15,12 @@ on:
 
 env:
   # TODO: use registry.swakraft.fr once DNS is ready
-  REGISTRY: 192.168.1.201:5000
+  REGISTRY: 10.10.0.1:5000
 
 jobs:
   build-push:
     name: Build & Push
-    runs-on: self-hosted
+    runs-on: [self-hosted, worker]
 
     steps:
       - name: Checkout
