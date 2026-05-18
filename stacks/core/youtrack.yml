@@ -3,7 +3,7 @@ services:
     image: jetbrains/youtrack:2026.1.13559
     environment:
       # Base URL finale de l'instance — à ajuster avec ton domaine
-      YOUTRACK_BASE_URL: https://youtrack.chauffagistes.fr
+      YOUTRACK_BASE_URL: https://youtrack.chauffagistes-btc.fr
     volumes:
       # Bind mounts vers les dossiers créés sur l'hôte
       # (volumes nommés incompatibles avec l'uid 13001)
