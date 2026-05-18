@@ -30,7 +30,7 @@ services:
           memory: 1G
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.youtrack.rule=Host(`youtrack.swakraft.fr`)"
+        - "traefik.http.routers.youtrack.rule=Host(`youtrack.chauffagistes-btc.fr`)"
         - "traefik.http.routers.youtrack.entrypoints=websecure"
         - "traefik.http.routers.youtrack.tls.certresolver=letsencrypt"
         - "traefik.http.services.youtrack.loadbalancer.server.port=8080"

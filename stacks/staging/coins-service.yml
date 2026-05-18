@@ -1,6 +1,6 @@
 services:
   app:
-    image: 192.168.1.201:5000/coins-service:sha-a954f0c  # mis à jour manuellement
+    image: 10.10.0.3:5000/coins-service:sha-a954f0c  # mis à jour manuellement
     environment:
       NODE_ENV: staging
       SERVER_PORT: "8095"
