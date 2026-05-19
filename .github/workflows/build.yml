@@ -7,6 +7,10 @@ on:
         description: "Nom du service"
         required: true
         type: string
+      build-args:
+        required: false
+        type: string
+        default: ""
     secrets:
       REGISTRY_USER:
         required: true
@@ -14,7 +18,6 @@ on:
         required: true
 
 env:
-  # TODO: use registry.swakraft.fr once DNS is ready
   REGISTRY: 10.10.0.3:5000
 
 jobs:
@@ -51,6 +54,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ inputs.build-args }}
 
       - name: Summary
         run: |
