@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/pool-site:sha-b5ade35
+    image: 10.10.0.3:5000/pool-site:sha-ba57de7
     environment:
       NODE_ENV: staging
       DB_USER: pool_site
@@ -9,6 +9,8 @@ services:
     secrets:
       - source: pool_site_staging_db_password
         target: db_password
+    volumes:
+      - pool-site-staging-migrations:/migrations  # volume partagé avec migrator
     networks:
       - chauffagistes-net
       - traefik-public
@@ -21,7 +23,7 @@ services:
       restart_policy:
         condition: on-failure
         delay: 5s
-        max_attempts: 3
+        max_attempts: 10
       resources:
         limits:
           cpus: "1"
@@ -65,7 +67,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/pool-site-migrator:sha-b5ade35
+    image: 10.10.0.3:5000/pool-site-migrator:sha-ba57de7
     environment:
       DB_USER: pool_site
       DB_HOST: pool-site-staging-db
@@ -73,12 +75,8 @@ services:
     secrets:
       - source: pool_site_staging_db_password
         target: db_password
-    command: >
-      sh -c "
-        export DATABASE_URL=postgresql://$${DB_USER}:$$(cat /run/secrets/db_password)@$${DB_HOST}:5432/$${DB_NAME} &&
-        until npx prisma migrate deploy; do
-          echo 'DB pas prête, retry...'; sleep 2;
-        done"
+    volumes:
+      - pool-site-staging-migrations:/migrations
     networks:
       - pool-site-staging-internal
     deploy:
@@ -93,6 +91,7 @@ services:
 
 volumes:
   pool-site-staging-db-data:
+  pool-site-staging-migrations:
 
 networks:
   chauffagistes-net:
