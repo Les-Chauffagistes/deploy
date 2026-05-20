@@ -7,7 +7,7 @@
 
 services:
   app:
-    image: ghcr.io/chauffagistes/MY-SERVICE:sha-0000000  # mis à jour manuellement
+    image: 10.10.0.3:5000/MY-SERVICE:sha-0000000  # mis à jour manuellement
     environment:
       NODE_ENV: staging
       DATABASE_URL: postgres://MY_SERVICE:DOCKER-SECRET@MY-SERVICE-staging-db:5432/MY_SERVICE

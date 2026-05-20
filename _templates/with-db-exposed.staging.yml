@@ -5,7 +5,7 @@
 
 services:
   app:
-    image: ghcr.io/chauffagistes/MY-SERVICE:sha-0000000  # mis à jour manuellement
+    image: 10.10.0.3:5000/MY-SERVICE:sha-0000000  # mis à jour manuellement
     environment:
       NODE_ENV: staging
       DATABASE_URL: postgres://MY_SERVICE:DOCKER-SECRET@MY-SERVICE-staging-db:5432/MY_SERVICE
@@ -16,6 +16,7 @@ services:
         target: api_key
     networks:
       - chauffagistes-net
+      - traefik-public
       - MY-SERVICE-staging-internal
     deploy:
       replicas: 1
@@ -73,6 +74,8 @@ volumes:
 
 networks:
   chauffagistes-net:
+    external: true
+  traefik-public:
     external: true
   MY-SERVICE-staging-internal:
     driver: overlay

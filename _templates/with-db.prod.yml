@@ -5,7 +5,7 @@
 
 services:
   app:
-    image: ghcr.io/chauffagistes/MY-SERVICE:0.0.0  # tag semver obligatoire en prod
+    image: 10.10.0.3:5000/MY-SERVICE:0.0.0  # tag semver obligatoire en prod
     environment:
       NODE_ENV: production
       DATABASE_URL: postgres://MY_SERVICE:DOCKER-SECRET@MY-SERVICE-prod-db:5432/MY_SERVICE
