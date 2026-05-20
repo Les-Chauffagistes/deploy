@@ -5,7 +5,7 @@ services:
       NODE_ENV: staging
       DB_USER: pool_site
       DB_NAME: pool_site
-      DB_HOST: pool-site-staging-db
+      DB_HOST: pool-site-staging_db
     secrets:
       - source: pool_site_staging_db_password
         target: db_password
@@ -70,7 +70,7 @@ services:
     image: 10.10.0.3:5000/pool-site-migrator:sha-52acb7a
     environment:
       DB_USER: pool_site
-      DB_HOST: pool-site-staging-db
+      DB_HOST: pool-site-staging_db
       DB_NAME: pool_site
     secrets:
       - source: pool_site_staging_db_password
