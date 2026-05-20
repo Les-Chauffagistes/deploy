@@ -107,6 +107,7 @@ jobs:
                 --filter "label=com.docker.stack.namespace=${NAMESPACE}" \
                 --format "{{.Name}} {{.Replicas}}" \
                 | while read -r name replicas; do
+                    echo "$name" | grep -q "_migrator" && continue
                     current=$(echo "$replicas" | cut -d'/' -f1)
                     target=$(echo "$replicas" | cut -d'/' -f2)
                     [ "$current" != "$target" ] && echo "$name"
