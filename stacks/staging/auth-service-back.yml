@@ -6,7 +6,7 @@ services:
       POSTGRES_DB: auth
       DISCORD_CALLBACK_URL: https://auth.staging.swakraft.fr/auth/discord/callback
       LIGHTNING_CALLBACK_URL: https://auth.staging.swakraft.fr/auth/lightning/callback
-      DB_HOST: auth-service-back_db
+      DB_HOST: auth-service-back-staging_db
       DOMAIN_NAME: .swakraft.fr
     secrets:
       - source: auth_staging_db_password

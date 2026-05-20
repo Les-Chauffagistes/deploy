@@ -83,7 +83,7 @@ jobs:
         run: |
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
           for file in stacks/${ENV}/*.yml; do
-            stack=$(basename "$file" .yml)
+            stack="$(basename "$file" .yml)-${ENV}"
             echo "Deploying $stack..."
             docker stack deploy \
               -c "$file" \
@@ -135,7 +135,7 @@ jobs:
 
           # Stacks applicatifs
           for file in stacks/${ENV}/*.yml; do
-            stack=$(basename "$file" .yml)
+            stack="$(basename "$file" .yml)-${ENV}"
             verify_stack "$stack" 120 || FAILED=1
           done
 
