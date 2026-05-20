@@ -5,7 +5,7 @@ services:
       NODE_ENV: staging
       SERVER_PORT: "8095"
       DB_HOST: coins-service_db  # DNS Swarm : <stack>_<service>
-      AUTH_SERVICE_URL: auth-service_app:8086/auth  # à ajuster selon le nom du stack auth
+      AUTH_SERVICE_URL: auth-service-back_app:8080/auth
     secrets:
       - source: coins_staging_db_password
         target: db_password

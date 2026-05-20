@@ -13,6 +13,7 @@ services:
       - /opt/youtrack/backups:/opt/youtrack/backups
     networks:
       - chauffagistes-net
+      - traefik-public
     deploy:
       replicas: 1
       placement:
@@ -34,10 +35,10 @@ services:
         - "traefik.http.routers.youtrack.entrypoints=websecure"
         - "traefik.http.routers.youtrack.tls.certresolver=letsencrypt"
         - "traefik.http.services.youtrack.loadbalancer.server.port=8080"
-        # Timeout élevé — YouTrack peut être lent à répondre sur les grosses requêtes
-        - "traefik.http.middlewares.youtrack-timeout.forwardauth.trustForwardHeader=true"
         - "traefik.http.services.youtrack.loadbalancer.responseforwarding.flushinterval=1ms"
 
 networks:
   chauffagistes-net:
+    external: true
+  traefik-public:
     external: true

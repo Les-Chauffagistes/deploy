@@ -10,7 +10,7 @@ services:
       - registry-data:/var/lib/registry
       - registry-auth:/auth
     ports:
-      - "10.10.0.1:5000:5000"
+      - "10.10.0.3:5000:5000"
     networks:
       - chauffagistes-net
     deploy:
