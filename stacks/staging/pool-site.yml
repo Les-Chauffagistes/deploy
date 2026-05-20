@@ -1,0 +1,108 @@
+services:
+  app:
+    image: 10.10.0.3:5000/pool-site:sha-774a660
+    environment:
+      NODE_ENV: staging
+      DB_USER: pool_site
+      DB_NAME: pool_site
+      DB_HOST: pool-site-staging-db
+    secrets:
+      - source: pool_site_staging_db_password
+        target: db_password
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - pool-site-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.ingress == true
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.pool-site-staging.rule=Host(`pool-site.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.pool-site-staging.entrypoints=websecure"
+        - "traefik.http.routers.pool-site-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.pool-site-staging.loadbalancer.server.port=3002"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pool_site
+      POSTGRES_USER: pool_site
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: pool_site_staging_db_password
+        target: db_password
+    volumes:
+      - pool-site-staging-db-data:/var/lib/postgresql/data
+    networks:
+      - pool-site-staging-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pool_site"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  migrator:
+    image: 10.10.0.3:5000/pool-site-migrator:sha-b5ade35
+    environment:
+      DB_USER: pool_site
+      DB_HOST: pool-site-staging-db
+      DB_NAME: pool_site
+    secrets:
+      - source: pool_site_staging_db_password
+        target: db_password
+    command: >
+      sh -c "
+        export DATABASE_URL=postgresql://$${DB_USER}:$$(cat /run/secrets/db_password)@$${DB_HOST}:5432/$${DB_NAME} &&
+        until npx prisma migrate deploy; do
+          echo 'DB pas prête, retry...'; sleep 2;
+        done"
+    networks:
+      - pool-site-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+volumes:
+  pool-site-staging-db-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  pool-site-staging-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  pool_site_staging_db_password:
+    external: true
