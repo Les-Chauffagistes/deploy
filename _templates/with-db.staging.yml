@@ -10,7 +10,7 @@ services:
     image: 10.10.0.3:5000/MY-SERVICE:sha-0000000  # mis à jour manuellement
     environment:
       NODE_ENV: staging
-      DATABASE_URL: postgres://MY_SERVICE:DOCKER-SECRET@MY-SERVICE-staging-db:5432/MY_SERVICE
+      DATABASE_URL: postgres://MY_SERVICE:DOCKER-SECRET@MY-SERVICE-staging_db:5432/MY_SERVICE
     secrets:
       - source: MY_SERVICE_staging_db_password
         target: db_password
