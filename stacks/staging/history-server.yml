@@ -1,0 +1,87 @@
+version: "3.8"
+
+services:
+  app:
+    image: 10.10.0.3:5000/history-server:sha-62d2f3d
+    environment:
+      - POSTGRE_HOST=history-server-staging_db
+      - POSTGRE_PORT=5432
+      - POSTGRE_USER=postgres
+      - POSTGRE_DB=chauffagistes
+      - PORT=8050
+      - GATHER_STATS=true
+    secrets:
+      - history_server_staging_db_password
+      - history_server_staging_stats_api_token
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - history-server-staging-internal
+    depends_on:
+      - db
+    deploy:
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.history-server-staging.rule=Host(`history-server.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.history-server-staging.entrypoints=websecure"
+        - "traefik.http.routers.history-server-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.history-server-staging.loadbalancer.server.port=8050"
+
+  db:
+    image: timescale/timescaledb-ha:pg17
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=chauffagistes
+      - POSTGRES_PASSWORD_FILE=/run/secrets/history_server_staging_db_password
+    secrets:
+      - history_server_staging_db_password
+    networks:
+      - history-server-staging-internal
+    volumes:
+      - history-server-staging-pgdata:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chauffagistes"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+    deploy:
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+secrets:
+  history_server_staging_db_password:
+    external: true
+  history_server_staging_stats_api_token:
+    external: true
+
+volumes:
+  history-server-staging-pgdata:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  history-server-staging-internal:
+    driver: overlay
+    internal: true
