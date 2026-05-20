@@ -7,6 +7,11 @@ on:
         description: "Nom du service"
         required: true
         type: string
+      build-target:
+        description: "Stage Docker cible (ex: runner, migrator). Vide = image complète"
+        required: false
+        type: string
+        default: ""
       build-args:
         required: false
         type: string
@@ -22,12 +27,18 @@ env:
 
 jobs:
   build-push:
-    name: Build & Push
+    name: Build & Push ${{ inputs.service-name }}${{ inputs.build-target != '' && format(' ({0})', inputs.build-target) || '' }}
     runs-on: [self-hosted, worker]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      
+      - name: Debug env
+        run: |
+          whoami
+          echo "$PATH"
+          env | sort
 
       - name: Log in to registry
         uses: docker/login-action@v3
@@ -52,6 +63,7 @@ jobs:
         with:
           context: .
           push: true
+          target: ${{ inputs.build-target }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ inputs.build-args }}
