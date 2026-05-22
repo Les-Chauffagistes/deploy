@@ -30,7 +30,7 @@ services:
           memory: 512M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.pool-site-staging.rule=Host(`pool-site.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.pool-site-staging.rule=Host(`staging.chauffagistes-btc.fr`)"
         - "traefik.http.routers.pool-site-staging.entrypoints=websecure"
         - "traefik.http.routers.pool-site-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.pool-site-staging.loadbalancer.server.port=3002"
