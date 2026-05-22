@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/history-server:sha-62d2f3d
+    image: 10.10.0.3:5000/history-server:sha-b68c8e1
     environment:
       - POSTGRE_HOST=db
       - POSTGRE_PORT=5432
@@ -8,6 +8,11 @@ services:
       - POSTGRE_DB=chauffagistes
       - PORT=8050
       - GATHER_STATS=true
+    command: >
+      sh -c "
+      export POSTGRE_PASSWORD=$$(cat /run/secrets/history_server_staging_db_password) &&
+      export STATS_API_TOKEN=$$(cat /run/secrets/history_server_staging_stats_api_token) &&
+      python main.py"
     secrets:
       - history_server_staging_db_password
       - history_server_staging_stats_api_token
@@ -15,8 +20,6 @@ services:
       - chauffagistes-net
       - traefik-public
       - history-server-staging-internal
-    depends_on:
-      - db
     deploy:
       placement:
         constraints:
