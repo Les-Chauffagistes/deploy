@@ -49,6 +49,8 @@ services:
       - history_server_staging_db_password
     networks:
       - history-server-staging-internal
+    ports:
+      - "10.10.0.3:5432:5432"
     volumes:
       - history-server-staging-pgdata:/home/postgres/pgdata/data
     healthcheck:
