@@ -34,7 +34,7 @@ services:
         max_attempts: 10
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.history-server-staging.rule=Host(`history-server.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.history-server-staging.rule=Host(`history.staging.chauffagistes-btc.fr`)"
         - "traefik.http.routers.history-server-staging.entrypoints=websecure"
         - "traefik.http.routers.history-server-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.history-server-staging.loadbalancer.server.port=8050"
