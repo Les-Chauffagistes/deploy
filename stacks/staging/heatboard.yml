@@ -93,9 +93,9 @@ services:
   migrator:
     image: 10.10.0.3:5000/heatboard-migrator:sha-045f870
     environment:
-      PGHOST: db
-      PGUSER: postgres
-      PGDATABASE: chauffagistes
+      DB_USER: postgres
+      DB_HOST: db
+      DB_NAME: chauffagistes
     secrets:
       - source: heatboard_staging_db_password
         target: db_password
