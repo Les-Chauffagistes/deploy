@@ -30,8 +30,8 @@ services:
           memory: 256M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 3
+        delay: 15s
+        max_attempts: 10
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.history-server-staging.rule=Host(`history-server.staging.chauffagistes-btc.fr`)"
