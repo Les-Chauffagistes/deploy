@@ -33,7 +33,7 @@ services:
         - "traefik.http.routers.pool-site-staging.rule=Host(`staging.chauffagistes-btc.fr`)"
         - "traefik.http.routers.pool-site-staging.entrypoints=websecure"
         - "traefik.http.routers.pool-site-staging.tls.certresolver=letsencrypt"
-        - "traefik.http.services.pool-site-staging.loadbalancer.server.port=3002"
+        - "traefik.http.services.pool-site-staging.loadbalancer.server.port=3000"
 
   db:
     image: postgres:16-alpine
