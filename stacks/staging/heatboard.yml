@@ -56,7 +56,7 @@ services:
         - "traefik.http.routers.heatboard-staging.rule=Host(`heatboard.staging.chauffagistes-btc.fr`)"
         - "traefik.http.routers.heatboard-staging.entrypoints=websecure"
         - "traefik.http.routers.heatboard-staging.tls.certresolver=letsencrypt"
-        - "traefik.http.services.heatboard-staging.loadbalancer.server.port=3002"
+        - "traefik.http.services.heatboard-staging.loadbalancer.server.port=3000"
 
   db:
     image: postgres:16-alpine
