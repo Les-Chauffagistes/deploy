@@ -13,10 +13,6 @@ services:
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
-      NEXT_PUBLIC_BASE_URL: https://stats.chauffagistes-pool.fr
-      NEXT_PUBLIC_API_URL: https://chauffagistes-pool.fr:3000
-      NEXT_PUBLIC_HISTORY_API_URL: https://history.chauffagistes-btc.fr
-      NEXT_PUBLIC_BITCOIN_API_URL: https://bitcoin.chauffagistes-btc.fr
       PGHOST: db
       PGUSER: postgres
       PGPORT: "5432"
