@@ -6,6 +6,7 @@ services:
       DB_USER: pool_site
       DB_NAME: pool_site
       DB_HOST: pool-site-staging_db
+      HOSTNAME: "0.0.0.0"
     secrets:
       - source: pool_site_staging_db_password
         target: db_password
