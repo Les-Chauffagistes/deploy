@@ -12,6 +12,7 @@ services:
       node server.js"
     environment:
       NODE_ENV: staging
+      HOSTNAME: "0.0.0.0"
       NEXT_PUBLIC_BASE_URL: https://stats.chauffagistes-pool.fr
       NEXT_PUBLIC_API_URL: https://chauffagistes-pool.fr:3000
       NEXT_PUBLIC_HISTORY_API_URL: https://history.chauffagistes-btc.fr
