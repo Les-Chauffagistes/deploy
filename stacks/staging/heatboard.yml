@@ -32,6 +32,8 @@ services:
         target: heatboard_staging_discord_client_secret
       - source: heatboard_staging_nextauth_secret
         target: heatboard_staging_nextauth_secret
+    volumes:
+      - heatboard-staging-migrations:/migrations
     networks:
       - chauffagistes-net
       - traefik-public
@@ -98,6 +100,8 @@ services:
     secrets:
       - source: heatboard_staging_db_password
         target: db_password
+    volumes:
+      - heatboard-staging-migrations:/migrations
     networks:
       - heatboard-staging-internal
     deploy:
@@ -112,6 +116,7 @@ services:
 
 volumes:
   heatboard-staging-db-data:
+  heatboard-staging-migrations:
 
 networks:
   chauffagistes-net:
