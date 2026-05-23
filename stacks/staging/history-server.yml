@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/history-server:sha-b68c8e1
+    image: 10.10.0.3:5000/history-server:sha-89e896f
     environment:
       - POSTGRE_HOST=db
       - POSTGRE_PORT=5432
