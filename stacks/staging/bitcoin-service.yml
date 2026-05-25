@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  app:
+    image: 10.10.0.3:5000/bitcoin-service:sha-8e3cbb8
+    command: >
+      sh -c "
+      export BITCOIN_RPC_PASSWORD=$$(cat /run/secrets/bitcoin_service_staging_rpc_password) &&
+      python main.py"
+    environment:
+      SERVER_PORT: "8086"
+      BITCOIN_RPC_HOST: "192.168.1.204"
+      BITCOIN_RPC_PORT: "8332"
+      BITCOIN_RPC_USER: "bitcoinrpc"
+    secrets:
+      - bitcoin_service_staging_rpc_password
+    networks:
+      - chauffagistes-net
+      - traefik-public
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.bitcoin-service-staging.rule=Host(`bitcoin.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.bitcoin-service-staging.entrypoints=websecure"
+        - "traefik.http.routers.bitcoin-service-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.bitcoin-service-staging.loadbalancer.server.port=8086"
+
+secrets:
+  bitcoin_service_staging_rpc_password:
+    external: true
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
