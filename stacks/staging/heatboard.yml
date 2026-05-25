@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:sha-045f870
+    image: 10.10.0.3:5000/heatboard:sha-51aa420
     command: >
       sh -c "
       export PGPASSWORD=$$(cat /run/secrets/heatboard_staging_db_password) &&
@@ -21,6 +21,10 @@ services:
       DISCORD_REDIRECT_URI: https://heatboard.staging.chauffagistes-btc.fr/api/auth/discord/callback
       NEXTAUTH_URL: https://heatboard.staging.chauffagistes-btc.fr
       COOKIE_DOMAIN: .chauffagistes-btc.fr
+      BASE_URL: https://heatboard.staging.chauffagistes-btc.fr
+      API_URL: https://chauffagistes-pool.fr:3000
+      HISTORY_API_URL: https://history.staging.chauffagistes-btc.fr
+      BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
     secrets:
       - source: heatboard_staging_db_password
         target: heatboard_staging_db_password
@@ -92,7 +96,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/heatboard-migrator:sha-045f870
+    image: 10.10.0.3:5000/heatboard-migrator:sha-51aa420
     environment:
       DB_USER: postgres
       DB_HOST: db
