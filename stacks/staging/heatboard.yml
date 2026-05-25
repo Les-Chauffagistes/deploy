@@ -1,15 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:sha-51aa420
-    command: >
-      sh -c "
-      export PGPASSWORD=$$(cat /run/secrets/heatboard_staging_db_password) &&
-      export DATABASE_URL=postgresql://postgres:$$(cat /run/secrets/heatboard_staging_db_password)@db:5432/chauffagistes &&
-      export POOL_TOKEN=$$(cat /run/secrets/heatboard_staging_pool_token) &&
-      export SESSION_PASSWORD=$$(cat /run/secrets/heatboard_staging_session_password) &&
-      export DISCORD_CLIENT_SECRET=$$(cat /run/secrets/heatboard_staging_discord_client_secret) &&
-      export NEXTAUTH_SECRET=$$(cat /run/secrets/heatboard_staging_nextauth_secret) &&
-      node server.js"
+    image: 10.10.0.3:5000/heatboard:sha-91f5858
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
@@ -24,7 +15,7 @@ services:
       BASE_URL: https://heatboard.staging.chauffagistes-btc.fr
       API_URL: https://chauffagistes-pool.fr:3000
       HISTORY_API_URL: https://history.staging.chauffagistes-btc.fr
-      BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
+      BITCOIN_API_URL: https://bitcoin.staging.chauffagistes
     secrets:
       - source: heatboard_staging_db_password
         target: heatboard_staging_db_password
@@ -96,7 +87,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/heatboard-migrator:sha-51aa420
+    image: 10.10.0.3:5000/heatboard-migrator:sha-91f5858
     environment:
       DB_USER: postgres
       DB_HOST: db
