@@ -15,7 +15,7 @@ services:
       BASE_URL: https://heatboard.staging.chauffagistes-btc.fr
       API_URL: https://chauffagistes-pool.fr:3000
       HISTORY_API_URL: https://history.staging.chauffagistes-btc.fr
-      BITCOIN_API_URL: https://bitcoin.staging.chauffagistes
+      BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
     secrets:
       - source: heatboard_staging_db_password
         target: heatboard_staging_db_password
