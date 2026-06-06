@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:sha-25005bb
+    image: 10.10.0.3:5000/heatboard:sha-5e7e8dd
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
@@ -87,7 +87,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/heatboard-migrator:sha-25005bb
+    image: 10.10.0.3:5000/heatboard-migrator:sha-sha-5e7e8dd
     environment:
       DB_USER: postgres
       DB_HOST: db
