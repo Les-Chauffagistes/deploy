@@ -21,6 +21,8 @@ on:
         required: true
       REGISTRY_PASSWORD:
         required: true
+      ORG_PAT:
+        required: true
 
 env:
   REGISTRY: 10.10.0.3:5000
@@ -67,6 +69,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ inputs.build-args }}
+          secrets: |
+            npmrc=//npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
 
       - name: Summary
         run: |
