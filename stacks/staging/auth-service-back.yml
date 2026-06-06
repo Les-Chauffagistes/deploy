@@ -36,7 +36,7 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.auth-staging.rule=Host(`auth.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.auth-staging.rule=Host(`api.auth.staging.chauffagistes-btc.fr`)"
         - "traefik.http.routers.auth-staging.entrypoints=websecure"
         - "traefik.http.routers.auth-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.auth-staging.loadbalancer.server.port=8080"

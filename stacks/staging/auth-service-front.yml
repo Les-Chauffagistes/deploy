@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  app:
+    image: 10.10.0.3:5000/auth-service-front:sha-467c661
+    environment:
+      AUTH_API: https://api.auth.staging.chauffagistes-btc.fr
+      BASE_URL: https://auth.staging.chauffagistes-btc.fr
+    networks:
+      - chauffagistes-net
+      - traefik-public
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.auth-service-front-staging.rule=Host(`auth.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.auth-service-front-staging.entrypoints=websecure"
+        - "traefik.http.routers.auth-service-front-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.auth-service-front-staging.loadbalancer.server.port=3000"
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
