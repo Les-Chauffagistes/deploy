@@ -55,15 +55,16 @@ services:
     networks:
       - auth-staging-internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U auth"]
+      test: [ "CMD-SHELL", "pg_isready -U auth" ]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 60s
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == hugo  # même nœud que l'api
+          - node.labels.chauffagistes.host == hugo
       restart_policy:
         condition: on-failure
         delay: 5s
