@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: 10.10.0.3:5000/auth-service-front:sha-8e5155c
+    image: 10.10.0.3:5000/auth-service-front:sha-6e0c5d2
     environment:
       AUTH_API: https://api.auth.staging.chauffagistes-btc.fr
       BASE_URL: https://auth.staging.chauffagistes-btc.fr
