@@ -1,0 +1,132 @@
+services:
+  app:
+    image: 10.10.0.3:5000/contenders:sha-87561d1
+    command: >
+      sh -c "
+      export POSTGRE_PASSWORD=$$(cat /run/secrets/db_password) &&
+      export COINS_API_KEY=$$(cat /run/secrets/coins_api_key) &&
+      export JWT_SECRET=$$(cat /run/secrets/jwt_secret) &&
+      export DATABASE_URL=postgresql://postgres:$$(cat /run/secrets/db_password)@contenders-staging_db:5432/chauffagistes &&
+      node server.js"
+    environment:
+      API_URL: https://referee.staging.chauffagistes-btc.fr
+      WSS_URL: wss://referee.staging.chauffagistes-btc.fr
+      BASE_URL: https://contenders.staging.chauffagistes.fr
+      AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr/auth
+      AUTH_URL: https://auth.staging.chauffagistes-btc.fr
+      POSTGRE_USER: postgres
+      POSTGRE_HOST: contenders-staging_db
+      POSTGRE_PORT: "5432"
+      COINS_API_URL: https://coins.chauffagistes.fr
+      BETS_CURRENCY: hashcoin
+    secrets:
+      - source: contenders_staging_db_password
+        target: db_password
+      - source: contenders_staging_coins_api_key
+        target: coins_api_key
+      - source: contenders_staging_jwt_secret
+        target: jwt_secret
+    volumes:
+      - contenders-staging-migrations:/migrations
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - contenders-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.contenders-staging.rule=Host(`contenders.staging.chauffagistes.fr`)"
+        - "traefik.http.routers.contenders-staging.entrypoints=websecure"
+        - "traefik.http.routers.contenders-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
+
+  migrator:
+    image: 10.10.0.3:5000/contenders-migrator:sha-87561d1
+    environment:
+      PGHOST: contenders-staging_db
+      PGUSER: postgres
+      PGDATABASE: chauffagistes
+    secrets:
+      - source: contenders_staging_db_password
+        target: db_password
+    volumes:
+      - contenders-staging-migrations:/migrations
+    networks:
+      - contenders-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: chauffagistes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: contenders_staging_db_password
+        target: db_password
+    volumes:
+      - contenders-staging-db-data:/var/lib/postgresql/data
+    networks:
+      - contenders-staging-internal
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  contenders-staging-db-data:
+  contenders-staging-migrations:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  contenders-staging-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  contenders_staging_db_password:
+    external: true
+  contenders_staging_coins_api_key:
+    external: true
+  contenders_staging_jwt_secret:
+    external: true
