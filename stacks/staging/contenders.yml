@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/contenders:sha-87561d1
+    image: 10.10.0.3:5000/contenders:sha-5a13861
     command: >
       sh -c "
       export POSTGRE_PASSWORD=$$(cat /run/secrets/db_password) &&
@@ -53,7 +53,7 @@ services:
         - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
 
   migrator:
-    image: 10.10.0.3:5000/contenders-migrator:sha-87561d1
+    image: 10.10.0.3:5000/contenders-migrator:sha-5a13861
     environment:
       PGHOST: contenders-staging_db
       PGUSER: postgres
