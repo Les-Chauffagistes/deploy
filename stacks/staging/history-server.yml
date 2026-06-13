@@ -53,6 +53,7 @@ services:
       - "192.168.1.201:5432:5432"
     volumes:
       - history-server-staging-pgdata:/home/postgres/pgdata/data
+    stop_grace_period: 60s
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d chauffagistes"]
       interval: 10s
@@ -63,12 +64,14 @@ services:
       placement:
         constraints:
           - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
       resources:
         limits:
           cpus: "0.5"
           memory: 256M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
 
 secrets:

@@ -79,6 +79,7 @@ jobs:
           done
           docker stack deploy $COMPOSE_ARGS \
             --with-registry-auth \
+            --prune \
             core
 
       - name: Deploy all services
@@ -90,6 +91,7 @@ jobs:
             docker stack deploy \
               -c "$file" \
               --with-registry-auth \
+              --prune \
               "$stack"
           done
 
@@ -133,7 +135,7 @@ jobs:
           FAILED=0
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
 
-          # Core — timeout plus long pour YouTrack (JVM lente au démarrage)
+          # Core — timeout plus long (Traefik + registry)
           verify_stack "core" 180 || FAILED=1
 
           # Stacks applicatifs

@@ -54,6 +54,7 @@ services:
       - auth-staging-db-data:/var/lib/postgresql/data
     networks:
       - auth-staging-internal
+    stop_grace_period: 60s
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U auth" ]
       interval: 10s
@@ -65,8 +66,10 @@ services:
       placement:
         constraints:
           - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
       resources:
         limits:
