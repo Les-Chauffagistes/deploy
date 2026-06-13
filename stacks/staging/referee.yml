@@ -1,0 +1,94 @@
+services:
+  app:
+    image: 10.10.0.3:5000/referee:sha-39e3bf4
+    command: >
+      sh -c "
+      export POSTGRE_PASSWORD=$$(cat /run/secrets/db_password) &&
+      export API_TOKEN=$$(cat /run/secrets/api_token) &&
+      python main.py"
+    environment:
+      SERVER_PORT: "8095"
+      DB_USER: postgres
+      DB_HOST: referee-staging_db
+      API_URL: wss://shares-ws.chauffagistes-btc.fr/ws
+    secrets:
+      - source: referee_staging_db_password
+        target: db_password
+      - source: referee_staging_api_token
+        target: api_token
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - referee-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.referee-staging.rule=Host(`api.contenders.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.referee-staging.entrypoints=websecure"
+        - "traefik.http.routers.referee-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.referee-staging.loadbalancer.server.port=8095"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: chauffagistes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: referee_staging_db_password
+        target: db_password
+    volumes:
+      - referee-staging-db-data:/var/lib/postgresql/data
+    networks:
+      - referee-staging-internal
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  referee-staging-db-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  referee-staging-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  referee_staging_db_password:
+    external: true
+  referee_staging_api_token:
+    external: true
