@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/referee:sha-f0f990b
+    image: 10.10.0.3:5000/referee:sha-0364bb1
     environment:
       SERVER_PORT: "8095"
       DB_USER: postgres
