@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/contenders:sha-1325da7
+    image: 10.10.0.3:5000/contenders:sha-81f2652
     command: >
       sh -c "
       export POSTGRE_PASSWORD=$$(cat /run/secrets/db_password) &&
@@ -15,9 +15,9 @@ services:
       BASE_URL: https://contenders.staging.chauffagistes.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr/auth
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr
-      POSTGRE_USER: postgres
-      POSTGRE_HOST: contenders-staging_db
-      POSTGRE_PORT: "5432"
+      DB_USER: postgres
+      DB_NAME: chauffagistes
+      DB_HOST: contenders-staging_db
       COINS_API_URL: https://coins.chauffagistes.fr
       BETS_CURRENCY: hashcoin
     secrets:
@@ -54,7 +54,7 @@ services:
         - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
 
   migrator:
-    image: 10.10.0.3:5000/contenders-migrator:sha-1325da7
+    image: 10.10.0.3:5000/contenders-migrator:sha-81f2652
     environment:
       PGHOST: contenders-staging_db
       PGUSER: postgres
