@@ -6,6 +6,7 @@ services:
     environment:
       AUTH_API: https://api.auth.staging.chauffagistes-btc.fr
       BASE_URL: https://auth.staging.chauffagistes-btc.fr
+      HOSTNAME: "0.0.0.0"
     networks:
       - chauffagistes-net
       - traefik-public
