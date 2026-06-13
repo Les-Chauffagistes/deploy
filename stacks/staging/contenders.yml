@@ -56,9 +56,9 @@ services:
   migrator:
     image: 10.10.0.3:5000/contenders-migrator:sha-8e0c0be
     environment:
-      PGHOST: contenders-staging_db
-      PGUSER: postgres
-      PGDATABASE: chauffagistes
+      DB_HOST: contenders-staging_db
+      DB_USER: postgres
+      DB_NAME: chauffagistes
     secrets:
       - source: contenders_staging_db_password
         target: db_password
