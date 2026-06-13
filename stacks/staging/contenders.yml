@@ -9,6 +9,7 @@ services:
       export DATABASE_URL=postgresql://postgres:$$(cat /run/secrets/db_password)@contenders-staging_db:5432/chauffagistes &&
       node server.js"
     environment:
+      HOST: 0.0.0.0
       API_URL: https://referee.staging.chauffagistes-btc.fr
       WSS_URL: wss://referee.staging.chauffagistes-btc.fr
       BASE_URL: https://contenders.staging.chauffagistes.fr
