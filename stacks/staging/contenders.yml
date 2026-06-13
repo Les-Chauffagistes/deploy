@@ -47,7 +47,7 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.contenders-staging.rule=Host(`contenders.staging.chauffagistes.fr`)"
+        - "traefik.http.routers.contenders-staging.rule=Host(`contenders.staging.chauffagistes-btc.fr`)"
         - "traefik.http.routers.contenders-staging.entrypoints=websecure"
         - "traefik.http.routers.contenders-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
