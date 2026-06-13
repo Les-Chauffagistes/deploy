@@ -1,11 +1,6 @@
 services:
   app:
     image: 10.10.0.3:5000/referee:sha-39e3bf4
-    command: >
-      sh -c "
-      export POSTGRE_PASSWORD=$$(cat /run/secrets/db_password) &&
-      export API_TOKEN=$$(cat /run/secrets/api_token) &&
-      python main.py"
     environment:
       SERVER_PORT: "8095"
       DB_USER: postgres
