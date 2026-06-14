@@ -12,7 +12,7 @@ services:
       HOSTNAME: 0.0.0.0
       API_URL: https://api.contenders.staging.chauffagistes-btc.fr
       WSS_URL: wss://api.contenders.staging.chauffagistes-btc.fr
-      BASE_URL: https://contenders.staging.chauffagistes.fr
+      BASE_URL: https://contenders.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr/auth
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr
       DB_USER: postgres
