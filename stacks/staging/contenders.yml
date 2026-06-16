@@ -15,10 +15,10 @@ services:
       BASE_URL: https://contenders.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr
+      COINS_API_URL: http://coins-service-staging_app:8095
       DB_USER: postgres
       DB_NAME: chauffagistes
       DB_HOST: contenders-staging_db
-      COINS_API_URL: https://coins.chauffagistes.fr
       BETS_CURRENCY: hashcoin
     secrets:
       - source: contenders_staging_db_password
