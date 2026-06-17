@@ -50,7 +50,10 @@ services:
     networks:
       - history-server-staging-internal
     ports:
-      - "192.168.1.201:5432:5432"
+      - target: 5432
+        published: 5432
+        protocol: tcp
+        mode: host
     volumes:
       - history-server-staging-pgdata:/home/postgres/pgdata/data
     stop_grace_period: 60s
