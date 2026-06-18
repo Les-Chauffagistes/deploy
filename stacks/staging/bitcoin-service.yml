@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   app:
-    image: 10.10.0.3:5000/bitcoin-service:sha-8e3cbb8
+    image: 10.10.0.3:5000/bitcoin-service:sha-6943259
     command: >
       sh -c "
       export BITCOIN_RPC_PASSWORD=$$(cat /run/secrets/bitcoin_service_staging_rpc_password) &&

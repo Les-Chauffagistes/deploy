@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/hash-contenders:sha-6c93cc8
+    image: 10.10.0.3:5000/hash-contenders:sha-4cd135e
     command: >
       sh -c "
       export POSTGRE_PASSWORD=$$(cat /run/secrets/db_password) &&
@@ -54,7 +54,7 @@ services:
         - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
 
   migrator:
-    image: 10.10.0.3:5000/hash-contenders-migrator:sha-6c93cc8
+    image: 10.10.0.3:5000/hash-contenders-migrator:sha-4cd135e
     environment:
       DB_HOST: hash-contenders-staging_db
       DB_USER: postgres
