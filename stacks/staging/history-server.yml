@@ -49,6 +49,7 @@ services:
       - history_server_staging_db_password
     networks:
       - history-server-staging-internal
+      - history-server-staging-db-expose
     ports:
       - target: 5432
         published: 5432
@@ -94,3 +95,5 @@ networks:
   history-server-staging-internal:
     driver: overlay
     internal: true
+  history-server-staging-db-expose:
+    driver: overlay

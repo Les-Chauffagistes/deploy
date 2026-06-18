@@ -66,6 +66,7 @@ services:
       - heatboard-staging-db-data:/var/lib/postgresql/data
     networks:
       - heatboard-staging-internal
+      - heatboard-staging-db-expose
     ports:
       - target: 5432
         published: 5433
@@ -128,6 +129,8 @@ networks:
   heatboard-staging-internal:
     driver: overlay
     internal: true
+  heatboard-staging-db-expose:
+    driver: overlay
 
 secrets:
   heatboard_staging_db_password:

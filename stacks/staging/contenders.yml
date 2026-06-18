@@ -89,6 +89,7 @@ services:
       - contenders-staging-db-data:/var/lib/postgresql/data
     networks:
       - contenders-staging-internal
+      - contenders-staging-db-expose
     ports:
       - target: 5432
         published: 5434
@@ -128,6 +129,8 @@ networks:
   contenders-staging-internal:
     driver: overlay
     internal: true
+  contenders-staging-db-expose:
+    driver: overlay
 
 secrets:
   contenders_staging_db_password:
