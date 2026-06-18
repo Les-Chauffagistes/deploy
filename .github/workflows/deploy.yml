@@ -155,3 +155,44 @@ jobs:
           echo ""
           echo "✅ Tous les stacks sont convergés"
           docker service ls
+
+      - name: Tag deployed commits
+        env:
+          ORG_PAT: ${{ secrets.ORG_PAT }}
+        run: |
+          if ! command -v yq &> /dev/null; then
+            wget -qO /usr/local/bin/yq \
+              https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            chmod +x /usr/local/bin/yq
+          fi
+
+          ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
+          GIT_TAG=${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+
+          for file in stacks/${ENV}/*.yml; do
+            service="$(basename "$file" .yml)"
+            IMAGE_TAG=$(yq e '.services.app.image // ""' "$file" | cut -d: -f2)
+            [[ -z "$IMAGE_TAG" || "$IMAGE_TAG" == "null" ]] && continue
+
+            if [[ "$ENV" == "staging" ]]; then
+              SHA="${IMAGE_TAG#sha-}"
+            else
+              # Résout le tag semver en commit SHA (supporte les tags annotés via ^{})
+              SHA=$(git ls-remote \
+                "https://x-access-token:${ORG_PAT}@github.com/les-chauffagistes/${service}.git" \
+                "refs/tags/${IMAGE_TAG}^{}" | cut -f1)
+              [[ -z "$SHA" ]] && SHA=$(git ls-remote \
+                "https://x-access-token:${ORG_PAT}@github.com/les-chauffagistes/${service}.git" \
+                "refs/tags/${IMAGE_TAG}" | cut -f1)
+              if [[ -z "$SHA" ]]; then
+                echo "⚠️ Tag ${IMAGE_TAG} introuvable dans ${service}, skipping"
+                continue
+              fi
+            fi
+
+            echo "→ ${service} : tag ${GIT_TAG} → ${SHA}"
+            git push \
+              "https://x-access-token:${ORG_PAT}@github.com/les-chauffagistes/${service}.git" \
+              "${SHA}:refs/tags/${GIT_TAG}" \
+              --force
+          done
