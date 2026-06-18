@@ -169,31 +169,44 @@ jobs:
 
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
           GIT_TAG=${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+          ORG="les-chauffagistes"
+          API="https://api.github.com"
+
+          # Crée ou déplace un tag léger via l'API GitHub
+          set_tag() {
+            local repo=$1 sha=$2 tag=$3
+            if ! curl -sf -X PATCH \
+                -H "Authorization: token ${ORG_PAT}" \
+                -H "Content-Type: application/json" \
+                "${API}/repos/${ORG}/${repo}/git/refs/tags/${tag}" \
+                -d "{\"sha\":\"${sha}\",\"force\":true}" > /dev/null; then
+              curl -sf -X POST \
+                -H "Authorization: token ${ORG_PAT}" \
+                -H "Content-Type: application/json" \
+                "${API}/repos/${ORG}/${repo}/git/refs" \
+                -d "{\"ref\":\"refs/tags/${tag}\",\"sha\":\"${sha}\"}" > /dev/null
+            fi
+          }
 
           for file in stacks/${ENV}/*.yml; do
             service="$(basename "$file" .yml)"
             IMAGE_TAG=$(yq e '.services.app.image // ""' "$file" | awk -F: '{print $NF}')
             [[ -z "$IMAGE_TAG" || "$IMAGE_TAG" == "null" ]] && continue
 
-            if [[ "$ENV" == "staging" ]]; then
-              SHA="${IMAGE_TAG#sha-}"
-            else
-              # Résout le tag semver en commit SHA (supporte les tags annotés via ^{})
-              SHA=$(git ls-remote \
-                "https://x-access-token:${ORG_PAT}@github.com/les-chauffagistes/${service}.git" \
-                "refs/tags/${IMAGE_TAG}^{}" | cut -f1)
-              [[ -z "$SHA" ]] && SHA=$(git ls-remote \
-                "https://x-access-token:${ORG_PAT}@github.com/les-chauffagistes/${service}.git" \
-                "refs/tags/${IMAGE_TAG}" | cut -f1)
-              if [[ -z "$SHA" ]]; then
-                echo "⚠️ Tag ${IMAGE_TAG} introuvable dans ${service}, skipping"
-                continue
-              fi
+            # Staging : sha-abc1234 → abc1234 | Prod : tag semver passé tel quel
+            REF=$([[ "$ENV" == "staging" ]] && echo "${IMAGE_TAG#sha-}" || echo "$IMAGE_TAG")
+
+            # L'API commits de GitHub accepte SHA courts et noms de tags
+            FULL_SHA=$(curl -sf \
+              -H "Authorization: token ${ORG_PAT}" \
+              "${API}/repos/${ORG}/${service}/commits/${REF}" \
+              | python3 -c "import json,sys; print(json.load(sys.stdin)['sha'])" 2>/dev/null)
+
+            if [[ -z "$FULL_SHA" || "$FULL_SHA" == "null" ]]; then
+              echo "⚠️ Commit introuvable pour ${service}@${REF}, skipping"
+              continue
             fi
 
-            echo "→ ${service} : tag ${GIT_TAG} → ${SHA}"
-            git push \
-              "https://x-access-token:${ORG_PAT}@github.com/les-chauffagistes/${service}.git" \
-              "${SHA}:refs/tags/${GIT_TAG}" \
-              --force
+            echo "→ ${service} : tag ${GIT_TAG} → ${FULL_SHA}"
+            set_tag "$service" "$FULL_SHA" "$GIT_TAG"
           done
