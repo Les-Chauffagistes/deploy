@@ -4,7 +4,7 @@ services:
     environment:
       SERVER_PORT: "8095"
       DB_USER: postgres
-      DB_HOST: db
+      DB_HOST: referee-staging_db
       DB_NAME: chauffagistes
       API_URL: wss://shares-ws.chauffagistes-btc.fr/ws
     secrets:
