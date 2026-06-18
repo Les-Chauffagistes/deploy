@@ -174,17 +174,24 @@ jobs:
 
           # Crée ou déplace un tag léger via l'API GitHub
           set_tag() {
-            local repo=$1 sha=$2 tag=$3
-            if ! curl -sf -X PATCH \
-                -H "Authorization: token ${ORG_PAT}" \
-                -H "Content-Type: application/json" \
-                "${API}/repos/${ORG}/${repo}/git/refs/tags/${tag}" \
-                -d "{\"sha\":\"${sha}\",\"force\":true}" > /dev/null; then
-              curl -sf -X POST \
+            local repo=$1 sha=$2 tag=$3 status
+
+            status=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+              -H "Authorization: token ${ORG_PAT}" \
+              -H "Content-Type: application/json" \
+              "${API}/repos/${ORG}/${repo}/git/refs/tags/${tag}" \
+              -d "{\"sha\":\"${sha}\",\"force\":true}")
+
+            if [[ "$status" != "200" ]]; then
+              status=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
                 -H "Authorization: token ${ORG_PAT}" \
                 -H "Content-Type: application/json" \
                 "${API}/repos/${ORG}/${repo}/git/refs" \
-                -d "{\"ref\":\"refs/tags/${tag}\",\"sha\":\"${sha}\"}" > /dev/null
+                -d "{\"ref\":\"refs/tags/${tag}\",\"sha\":\"${sha}\"}")
+              if [[ "$status" != "201" ]]; then
+                echo "❌ Échec du tag pour ${repo} (HTTP ${status})"
+                return 1
+              fi
             fi
           }
 
@@ -197,10 +204,10 @@ jobs:
             REF=$([[ "$ENV" == "staging" ]] && echo "${IMAGE_TAG#sha-}" || echo "$IMAGE_TAG")
 
             # L'API commits de GitHub accepte SHA courts et noms de tags
-            FULL_SHA=$(curl -sf \
+            FULL_SHA=$(curl -s \
               -H "Authorization: token ${ORG_PAT}" \
               "${API}/repos/${ORG}/${service}/commits/${REF}" \
-              | python3 -c "import json,sys; print(json.load(sys.stdin)['sha'])" 2>/dev/null)
+              | python3 -c "import json,sys; print(json.load(sys.stdin)['sha'])" 2>/dev/null) || true
 
             if [[ -z "$FULL_SHA" || "$FULL_SHA" == "null" ]]; then
               echo "⚠️ Commit introuvable pour ${service}@${REF}, skipping"
