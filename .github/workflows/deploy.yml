@@ -172,7 +172,7 @@ jobs:
 
           for file in stacks/${ENV}/*.yml; do
             service="$(basename "$file" .yml)"
-            IMAGE_TAG=$(yq e '.services.app.image // ""' "$file" | cut -d: -f2)
+            IMAGE_TAG=$(yq e '.services.app.image // ""' "$file" | awk -F: '{print $NF}')
             [[ -z "$IMAGE_TAG" || "$IMAGE_TAG" == "null" ]] && continue
 
             if [[ "$ENV" == "staging" ]]; then
