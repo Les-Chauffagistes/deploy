@@ -43,6 +43,12 @@ services:
       - coins-staging-db-data:/var/lib/postgresql/data
     networks:
       - coins-staging-internal
+      - coins-staging-db-expose
+    ports:
+      - target: 5432
+        published: 5435
+        protocol: tcp
+        mode: host
     stop_grace_period: 60s
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U coins"]
@@ -74,6 +80,8 @@ networks:
   coins-staging-internal:
     driver: overlay
     internal: true
+  coins-staging-db-expose:
+    driver: overlay
 
 secrets:
   coins_staging_db_password:
