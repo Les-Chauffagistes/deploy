@@ -71,6 +71,8 @@ jobs:
           build-args: ${{ inputs.build-args }}
           secrets: |
             npmrc=//npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
+          cache-from: type=registry,ref=10.10.0.3:5000/${{ inputs.service-name }}:cache
+          cache-to:   type=registry,ref=10.10.0.3:5000/${{ inputs.service-name }}:cache,mode=max
 
       - name: Summary
         run: |
