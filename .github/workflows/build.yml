@@ -30,17 +30,22 @@ env:
 jobs:
   build-push:
     name: Build & Push ${{ inputs.service-name }}${{ inputs.build-target != '' && format(' ({0})', inputs.build-target) || '' }}
-    runs-on: [self-hosted, worker]
+    runs-on: [ self-hosted, worker ]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Debug env
         run: |
           whoami
           echo "$PATH"
           env | sort
+          
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
 
       - name: Log in to registry
         uses: docker/login-action@v3
@@ -72,7 +77,7 @@ jobs:
           secrets: |
             npmrc=//npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
           cache-from: type=registry,ref=10.10.0.3:5000/${{ inputs.service-name }}:cache
-          cache-to:   type=registry,ref=10.10.0.3:5000/${{ inputs.service-name }}:cache,mode=max
+          cache-to: type=registry,ref=10.10.0.3:5000/${{ inputs.service-name }}:cache,mode=max
 
       - name: Summary
         run: |
