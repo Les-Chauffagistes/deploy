@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:sha-5e7e8dd
+    image: 10.10.0.3:5000/heatboard:sha-2197162
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
@@ -16,6 +16,8 @@ services:
       API_URL: https://chauffagistes-pool.fr:3000
       HISTORY_API_URL: https://history.staging.chauffagistes-btc.fr
       BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
+      AUTH_URL: https://auth.staging.chauffagistes-btc.fr
+      AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
     secrets:
       - source: heatboard_staging_db_password
         target: heatboard_staging_db_password
@@ -95,7 +97,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/heatboard-migrator:sha-5e7e8dd
+    image: 10.10.0.3:5000/heatboard-migrator:sha-2197162
     environment:
       DB_USER: postgres
       DB_HOST: db
