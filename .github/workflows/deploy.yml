@@ -10,14 +10,38 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────
+  # Détection des changements par dossier
+  # ─────────────────────────────────────────────
+  changes:
+    name: Detect changes
+    runs-on: [self-hosted, manager]
+    outputs:
+      staging: ${{ steps.filter.outputs.staging }}
+      prod:    ${{ steps.filter.outputs.prod }}
+      core:    ${{ steps.filter.outputs.core }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            staging:
+              - 'stacks/staging/**'
+            prod:
+              - 'stacks/prod/**'
+            core:
+              - 'stacks/core/**'
+
+  # ─────────────────────────────────────────────
   # Guard — vérifie que les images prod sont
   # toutes taguées en semver, jamais en SHA
-  # Uniquement sur main
+  # Uniquement sur main si stacks/prod a changé
   # ─────────────────────────────────────────────
   guard-prod-images:
     name: Guard — no SHA in prod
     runs-on: [self-hosted, manager]
-    if: github.ref == 'refs/heads/main'
+    needs: [changes]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.prod == 'true'
 
     steps:
       - name: Checkout
@@ -53,14 +77,18 @@ jobs:
 
   # ─────────────────────────────────────────────
   # Deploy
-  # Sur prod : attend que le guard passe
-  # Sur staging : guard skippé, on déploie direct
   # ─────────────────────────────────────────────
   deploy:
     name: Deploy (${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }})
-    runs-on: manager
-    needs: [guard-prod-images]
-    if: always() && (needs.guard-prod-images.result == 'success' || needs.guard-prod-images.result == 'skipped')
+    runs-on: [self-hosted, manager]
+    needs: [changes, guard-prod-images]
+    # Déployer si :
+    # - guard skippé (pas de changement prod ou branche develop) ou guard passé
+    # - ET au moins un dossier a changé
+    if: |
+      always() &&
+      (needs.guard-prod-images.result == 'success' || needs.guard-prod-images.result == 'skipped') &&
+      (needs.changes.outputs.core == 'true' || needs.changes.outputs.staging == 'true' || needs.changes.outputs.prod == 'true')
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
 
     steps:
@@ -68,6 +96,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy core stack
+        if: needs.changes.outputs.core == 'true'
         env:
           DOMAIN: ${{ vars.DOMAIN }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
@@ -82,7 +111,10 @@ jobs:
             --prune \
             core
 
-      - name: Deploy all services
+      - name: Deploy services
+        if: |
+          (github.ref == 'refs/heads/develop' && needs.changes.outputs.staging == 'true') ||
+          (github.ref == 'refs/heads/main'    && needs.changes.outputs.prod    == 'true')
         run: |
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
           for file in stacks/${ENV}/*.yml; do
@@ -96,6 +128,10 @@ jobs:
           done
 
       - name: Verify convergence
+        if: |
+          needs.changes.outputs.core == 'true' ||
+          (github.ref == 'refs/heads/develop' && needs.changes.outputs.staging == 'true') ||
+          (github.ref == 'refs/heads/main'    && needs.changes.outputs.prod    == 'true')
         run: |
           verify_stack() {
             local NAMESPACE=$1
@@ -106,7 +142,6 @@ jobs:
             echo "── Vérification stack: $NAMESPACE (timeout ${TIMEOUT}s)"
 
             while [ $ELAPSED -lt $TIMEOUT ]; do
-              # Récupère les services du namespace qui ne sont pas à leur nombre de replicas cible
               FAILING=$(docker service ls \
                 --filter "label=com.docker.stack.namespace=${NAMESPACE}" \
                 --format "{{.Name}} {{.Replicas}}" \
@@ -135,19 +170,20 @@ jobs:
           FAILED=0
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
 
-          # Core — timeout plus long (Traefik + registry)
-          verify_stack "core" 180 || FAILED=1
+          [[ "${{ needs.changes.outputs.core }}" == "true" ]] && \
+            { verify_stack "core" 180 || FAILED=1; }
 
-          # Stacks applicatifs
-          for file in stacks/${ENV}/*.yml; do
-            stack="$(basename "$file" .yml)-${ENV}"
-            verify_stack "$stack" 120 || FAILED=1
-          done
+          if [[ "${{ needs.changes.outputs.staging }}" == "true" && "${{ github.ref }}" == "refs/heads/develop" ]] || \
+             [[ "${{ needs.changes.outputs.prod }}"    == "true" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            for file in stacks/${ENV}/*.yml; do
+              stack="$(basename "$file" .yml)-${ENV}"
+              verify_stack "$stack" 120 || FAILED=1
+            done
+          fi
 
           if [ $FAILED -eq 1 ]; then
             echo ""
             echo "❌ Un ou plusieurs stacks n'ont pas convergé"
-            echo "État global :"
             docker service ls
             exit 1
           fi
@@ -157,6 +193,9 @@ jobs:
           docker service ls
 
       - name: Tag deployed commits
+        if: |
+          (github.ref == 'refs/heads/develop' && needs.changes.outputs.staging == 'true') ||
+          (github.ref == 'refs/heads/main'    && needs.changes.outputs.prod    == 'true')
         env:
           ORG_PAT: ${{ secrets.ORG_PAT }}
         run: |
@@ -172,7 +211,6 @@ jobs:
           ORG="les-chauffagistes"
           API="https://api.github.com"
 
-          # Crée ou déplace un tag léger via l'API GitHub
           set_tag() {
             local repo=$1 sha=$2 tag=$3 status
 
@@ -200,10 +238,8 @@ jobs:
             IMAGE_TAG=$(yq e '.services.app.image // ""' "$file" | awk -F: '{print $NF}')
             [[ -z "$IMAGE_TAG" || "$IMAGE_TAG" == "null" ]] && continue
 
-            # Staging : sha-abc1234 → abc1234 | Prod : tag semver passé tel quel
             REF=$([[ "$ENV" == "staging" ]] && echo "${IMAGE_TAG#sha-}" || echo "$IMAGE_TAG")
 
-            # L'API commits de GitHub accepte SHA courts et noms de tags
             FULL_SHA=$(curl -s \
               -H "Authorization: token ${ORG_PAT}" \
               "${API}/repos/${ORG}/${service}/commits/${REF}" \
