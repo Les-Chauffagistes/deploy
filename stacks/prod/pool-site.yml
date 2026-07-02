@@ -1,0 +1,112 @@
+services:
+  app:
+    image: 10.10.0.3:5000/pool-site:sha-7e1b185
+    environment:
+      NODE_ENV: staging
+      DB_USER: pool_site
+      DB_NAME: pool_site
+      DB_HOST: pool-site-db
+      HOSTNAME: "0.0.0.0"
+    secrets:
+      - source: pool_site_db_password
+        target: db_password
+    volumes:
+      - pool-site-migrations:/migrations  # volume partagé avec migrator
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - pool-site-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.pool-site-rule=Host(`chauffagistes-btc.fr`)"
+        - "traefik.http.routers.pool-site-entrypoints=websecure"
+        - "traefik.http.routers.pool-site-tls.certresolver=letsencrypt"
+        - "traefik.http.services.pool-site-loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pool_site
+      POSTGRES_USER: pool_site
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: pool_site_db_password
+        target: db_password
+    volumes:
+      - pool-site-db-data:/var/lib/postgresql/data
+    networks:
+      - pool-site-internal
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pool_site"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  migrator:
+    image: 10.10.0.3:5000/pool-site-migrator:sha-7e1b185
+    environment:
+      DB_USER: pool_site
+      DB_HOST: pool-site-db
+      DB_NAME: pool_site
+    secrets:
+      - source: pool_site_db_password
+        target: db_password
+    volumes:
+      - pool-site-migrations:/migrations
+    networks:
+      - pool-site-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+volumes:
+  pool-site-db-data:
+  pool-site-migrations:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  pool-site-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  pool_site_db_password:
+    external: true

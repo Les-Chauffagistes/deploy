@@ -1,0 +1,147 @@
+services:
+  app:
+    image: 10.10.0.3:5000/heatboard:sha-03be9b5
+    environment:
+      NODE_ENV: production
+      HOSTNAME: "0.0.0.0"
+      PGHOST: db
+      PGUSER: postgres
+      PGPORT: "5432"
+      PGDATABASE: chauffagistes
+      DISCORD_CLIENT_ID: "1100450456091766907"
+      DISCORD_REDIRECT_URI: https://heatboard.chauffagistes-btc.fr/api/auth/discord/callback
+      NEXTAUTH_URL: https://heatboard.chauffagistes-btc.fr
+      COOKIE_DOMAIN: .chauffagistes-btc.fr
+      BASE_URL: https://heatboard.chauffagistes-btc.fr
+      API_URL: https://chauffagistes-pool.fr:3000
+      HISTORY_API_URL: https://history.chauffagistes-btc.fr
+      BITCOIN_API_URL: https://bitcoin.chauffagistes-btc.fr
+      AUTH_URL: https://auth.chauffagistes-btc.fr
+      AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
+    secrets:
+      - source: heatboard_db_password
+        target: heatboard_db_password
+      - source: heatboard_pool_token
+        target: heatboard_pool_token
+      - source: heatboard_session_password
+        target: heatboard_session_password
+      - source: heatboard_discord_client_secret
+        target: heatboard_discord_client_secret
+      - source: heatboard_nextauth_secret
+        target: heatboard_nextauth_secret
+    volumes:
+      - heatboard-migrations:/migrations
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - heatboard-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.heatboard-rule=Host(`heatboard.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.heatboard-entrypoints=websecure"
+        - "traefik.http.routers.heatboard-tls.certresolver=letsencrypt"
+        - "traefik.http.services.heatboard-loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: chauffagistes
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/heatboard_db_password
+    secrets:
+      - source: heatboard_db_password
+        target: heatboard_db_password
+    volumes:
+      - heatboard-db-data:/var/lib/postgresql/data
+    networks:
+      - heatboard-internal
+      - heatboard-db-expose
+    ports:
+      - target: 5432
+        published: 5433
+        protocol: tcp
+        mode: host
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  migrator:
+    image: 10.10.0.3:5000/heatboard-migrator:sha-03be9b5
+    environment:
+      DB_USER: postgres
+      DB_HOST: db
+      DB_NAME: chauffagistes
+    secrets:
+      - source: heatboard_db_password
+        target: db_password
+    volumes:
+      - heatboard-migrations:/migrations
+    networks:
+      - heatboard-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+volumes:
+  heatboard-db-data:
+  heatboard-migrations:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  heatboard-internal:
+    driver: overlay
+    internal: true
+  heatboard-db-expose:
+    driver: overlay
+
+secrets:
+  heatboard_db_password:
+    external: true
+  heatboard_pool_token:
+    external: true
+  heatboard_session_password:
+    external: true
+  heatboard_discord_client_secret:
+    external: true
+  heatboard_nextauth_secret:
+    external: true

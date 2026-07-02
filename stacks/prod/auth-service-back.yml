@@ -1,0 +1,107 @@
+services:
+  app:
+    image: 10.10.0.3:5000/auth-service-back:sha-079b1ab
+    environment:
+      SERVER_PORT: "8080"
+      POSTGRES_DB: auth
+      DISCORD_CALLBACK_URL: https://api.auth.chauffagistes-btc.fr/discord/callback
+      LIGHTNING_CALLBACK_URL: https://auth.chauffagistes-btc.fr/lightning/callback
+      DB_HOST: auth-service-back-db
+      DOMAIN_NAME: .chauffagistes-btc.fr
+    secrets:
+      - source: auth_db_password
+        target: db_password
+      - source: auth_discord_client_id
+        target: discord_client_id
+      - source: auth_discord_client_secret
+        target: discord_client_secret
+      - source: auth_jwt_secret
+        target: jwt_secret
+    networks:
+      - traefik-public
+      - chauffagistes-net
+      - auth-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.auth-rule=Host(`api.auth.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.auth-entrypoints=websecure"
+        - "traefik.http.routers.auth-tls.certresolver=letsencrypt"
+        - "traefik.http.services.auth-loadbalancer.server.port=8080"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: auth_db_password
+        target: db_password
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    networks:
+      - auth-internal
+      - auth-db-expose
+    ports:
+      - target: 5432
+        published: 5436
+        protocol: tcp
+        mode: host
+    stop_grace_period: 60s
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U auth" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  auth-db-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  auth-internal:
+    driver: overlay
+    internal: true
+  auth-db-expose:
+    driver: overlay
+
+secrets:
+  auth_db_password:
+    external: true
+  auth_discord_client_id:
+    external: true
+  auth_discord_client_secret:
+    external: true
+  auth_jwt_secret:
+    external: true
