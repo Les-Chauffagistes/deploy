@@ -40,7 +40,7 @@ services:
         - "traefik.http.services.history-server-loadbalancer.server.port=8050"
 
   db:
-    image: timescale/timescaledb-ha:pg17
+    image: timescale/timescaledb-ha:pg17@sha256:9665079bcf1403aa1751f4139acbb5dae6b458c7653dfd357acd4e7ae0973192
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_DB=chauffagistes
