@@ -18,22 +18,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Python via uv
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ inputs.python-version }}
-          cache: pip
-          cache-dependency-path: ./requirements.txt
+          enable-cache: true
+          cache-dependency-glob: "**/requirements.txt"
 
       - name: Ensure Docker access (for Testcontainers)
         run: docker info > /dev/null
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          uv venv
+          uv pip install -r requirements.txt
 
       - name: Generate Prisma client
         if: ${{ hashFiles('**/schema.prisma') != '' }}
-        run: prisma generate
+        run: uv run prisma generate
 
       - name: Run pytest
-        run: pytest
+        run: uv run pytest
