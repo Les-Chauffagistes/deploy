@@ -31,5 +31,9 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Generate Prisma client
+        if: ${{ hashFiles('**/schema.prisma') != '' }}
+        run: prisma generate
+
       - name: Run pytest
         run: pytest
