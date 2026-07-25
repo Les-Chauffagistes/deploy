@@ -36,10 +36,10 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.auth-rule=Host(`api.auth.chauffagistes-btc.fr`)"
-        - "traefik.http.routers.auth-entrypoints=websecure"
-        - "traefik.http.routers.auth-tls.certresolver=letsencrypt"
-        - "traefik.http.services.auth-loadbalancer.server.port=8080"
+        - "traefik.http.routers.auth.rule=Host(`api.auth.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.auth.entrypoints=websecure"
+        - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
+        - "traefik.http.services.auth.loadbalancer.server.port=8080"
 
   db:
     image: postgres:16-alpine

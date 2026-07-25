@@ -25,10 +25,10 @@ services:
         max_attempts: 3
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.auth-service-front-rule=Host(`auth.chauffagistes-btc.fr`)"
-        - "traefik.http.routers.auth-service-front-entrypoints=websecure"
-        - "traefik.http.routers.auth-service-front-tls.certresolver=letsencrypt"
-        - "traefik.http.services.auth-service-front-loadbalancer.server.port=3000"
+        - "traefik.http.routers.auth-service-front.rule=Host(`auth.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.auth-service-front.entrypoints=websecure"
+        - "traefik.http.routers.auth-service-front.tls.certresolver=letsencrypt"
+        - "traefik.http.services.auth-service-front.loadbalancer.server.port=3000"
 
 networks:
   chauffagistes-net:

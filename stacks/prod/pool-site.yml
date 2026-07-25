@@ -31,10 +31,10 @@ services:
           memory: 512M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.pool-site-rule=Host(`chauffagistes-btc.fr`)"
-        - "traefik.http.routers.pool-site-entrypoints=websecure"
-        - "traefik.http.routers.pool-site-tls.certresolver=letsencrypt"
-        - "traefik.http.services.pool-site-loadbalancer.server.port=3000"
+        - "traefik.http.routers.pool-site.rule=Host(`chauffagistes-btc.fr`)"
+        - "traefik.http.routers.pool-site.entrypoints=websecure"
+        - "traefik.http.routers.pool-site.tls.certresolver=letsencrypt"
+        - "traefik.http.services.pool-site.loadbalancer.server.port=3000"
 
   db:
     image: postgres:16-alpine

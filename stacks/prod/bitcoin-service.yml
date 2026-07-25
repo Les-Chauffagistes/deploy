@@ -32,10 +32,10 @@ services:
         max_attempts: 3
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.bitcoin-service-rule=Host(`bitcoin.chauffagistes-btc.fr`)"
-        - "traefik.http.routers.bitcoin-service-entrypoints=websecure"
-        - "traefik.http.routers.bitcoin-service-tls.certresolver=letsencrypt"
-        - "traefik.http.services.bitcoin-service-loadbalancer.server.port=8086"
+        - "traefik.http.routers.bitcoin-service.rule=Host(`bitcoin.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.bitcoin-service.entrypoints=websecure"
+        - "traefik.http.routers.bitcoin-service.tls.certresolver=letsencrypt"
+        - "traefik.http.services.bitcoin-service.loadbalancer.server.port=8086"
 
 secrets:
   bitcoin_service_rpc_password:

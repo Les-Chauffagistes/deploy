@@ -34,10 +34,10 @@ services:
         max_attempts: 10
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.history-server-rule=Host(`history.chauffagistes-btc.fr`)"
-        - "traefik.http.routers.history-server-entrypoints=websecure"
-        - "traefik.http.routers.history-server-tls.certresolver=letsencrypt"
-        - "traefik.http.services.history-server-loadbalancer.server.port=8050"
+        - "traefik.http.routers.history-server.rule=Host(`history.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.history-server.entrypoints=websecure"
+        - "traefik.http.routers.history-server.tls.certresolver=letsencrypt"
+        - "traefik.http.services.history-server.loadbalancer.server.port=8050"
 
   db:
     image: timescale/timescaledb-ha:pg17@sha256:9665079bcf1403aa1751f4139acbb5dae6b458c7653dfd357acd4e7ae0973192

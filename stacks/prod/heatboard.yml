@@ -50,10 +50,10 @@ services:
           memory: 256M
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.heatboard-rule=Host(`heatboard.chauffagistes-btc.fr`)"
-        - "traefik.http.routers.heatboard-entrypoints=websecure"
-        - "traefik.http.routers.heatboard-tls.certresolver=letsencrypt"
-        - "traefik.http.services.heatboard-loadbalancer.server.port=3000"
+        - "traefik.http.routers.heatboard.rule=Host(`heatboard.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.heatboard.entrypoints=websecure"
+        - "traefik.http.routers.heatboard.tls.certresolver=letsencrypt"
+        - "traefik.http.services.heatboard.loadbalancer.server.port=3000"
 
   db:
     image: postgres:16-alpine
