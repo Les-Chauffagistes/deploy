@@ -23,7 +23,7 @@ services:
     deploy:
       placement:
         constraints:
-          - node.labels.chauffagistes.host == hugo
+          - node.labels.chauffagistes.host == docker-swarm-node02
       resources:
         limits:
           cpus: "0.5"

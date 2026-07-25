@@ -20,7 +20,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == hugo
+          - node.labels.chauffagistes.host == docker-swarm-node02
       restart_policy:
         condition: on-failure
         delay: 5s
