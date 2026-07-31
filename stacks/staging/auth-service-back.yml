@@ -1,9 +1,10 @@
 services:
   app:
-    image: 10.10.0.3:5000/auth-service-back:sha-f7238ab
+    image: 10.10.0.3:5000/auth-service-back:sha-dbeb4f3
     environment:
       SERVER_PORT: "8080"
       POSTGRES_DB: auth
+      DISCORD_CLIENT_ID: "1100450456091766907"
       DISCORD_CALLBACK_URL: https://api.auth.staging.chauffagistes-btc.fr/discord/callback
       LIGHTNING_CALLBACK_URL: https://auth.staging.chauffagistes-btc.fr/lightning/callback
       DB_HOST: auth-service-back-staging_db
@@ -11,8 +12,6 @@ services:
     secrets:
       - source: auth_staging_db_password
         target: db_password
-      - source: auth_staging_discord_client_id
-        target: discord_client_id
       - source: discord_client_secret_staging
         target: discord_client_secret
       - source: auth_staging_jwt_secret
