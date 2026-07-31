@@ -8,14 +8,13 @@ services:
       LIGHTNING_CALLBACK_URL: https://auth.chauffagistes-btc.fr/lightning/callback
       DB_HOST: auth-service-back-db
       DOMAIN_NAME: .chauffagistes-btc.fr
+      DISCORD_CLIENT_ID: "1100450456091766907"
     secrets:
-      - source: auth_db_password
+      - source: auth_prod_db_password
         target: db_password
-      - source: auth_discord_client_id
-        target: discord_client_id
-      - source: auth_discord_client_secret
+      - source: discord_client_secret_prod
         target: discord_client_secret
-      - source: auth_jwt_secret
+      - source: auth_prod_jwt_secret
         target: jwt_secret
     networks:
       - traefik-public
@@ -48,7 +47,7 @@ services:
       POSTGRES_USER: auth
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     secrets:
-      - source: auth_db_password
+      - source: auth_prod_db_password
         target: db_password
     volumes:
       - auth-db-data:/var/lib/postgresql/data
@@ -97,11 +96,9 @@ networks:
     driver: overlay
 
 secrets:
-  auth_db_password:
+  auth_prod_db_password:
     external: true
-  auth_discord_client_id:
+  discord_client_secret_prod:
     external: true
-  auth_discord_client_secret:
-    external: true
-  auth_jwt_secret:
+  auth_prod_jwt_secret:
     external: true

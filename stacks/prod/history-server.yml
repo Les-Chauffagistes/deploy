@@ -14,8 +14,10 @@ services:
       export STATS_API_TOKEN=$$(cat /run/secrets/history_server_stats_api_token) &&
       python main.py"
     secrets:
-      - history_server_db_password
-      - history_server_stats_api_token
+      - source: history_server_prod_db_password
+        target: history_server_db_password
+      - source: history_server_prod_stats_api_token
+        target: history_server_stats_api_token
     networks:
       - chauffagistes-net
       - traefik-public
@@ -46,7 +48,8 @@ services:
       - POSTGRES_DB=chauffagistes
       - POSTGRES_PASSWORD_FILE=/run/secrets/history_server_db_password
     secrets:
-      - history_server_db_password
+      - source: history_server_prod_db_password
+        target: history_server_db_password
     networks:
       - history-server-internal
       - history-server-db-expose
@@ -79,9 +82,9 @@ services:
         delay: 5s
 
 secrets:
-  history_server_db_password:
+  history_server_prod_db_password:
     external: true
-  history_server_stats_api_token:
+  history_server_prod_stats_api_token:
     external: true
 
 volumes:

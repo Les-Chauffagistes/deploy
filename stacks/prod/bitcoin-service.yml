@@ -13,7 +13,8 @@ services:
       BITCOIN_RPC_PORT: "8332"
       BITCOIN_RPC_USER: "bitcoinrpc"
     secrets:
-      - bitcoin_service_rpc_password
+      - source: bitcoin_service_prod_rpc_password
+        target: bitcoin_service_rpc_password
     networks:
       - chauffagistes-net
       - traefik-public
@@ -38,7 +39,7 @@ services:
         - "traefik.http.services.bitcoin-service.loadbalancer.server.port=8086"
 
 secrets:
-  bitcoin_service_rpc_password:
+  bitcoin_service_prod_rpc_password:
     external: true
 
 networks:

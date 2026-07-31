@@ -19,15 +19,15 @@ services:
       AUTH_URL: https://auth.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
     secrets:
-      - source: heatboard_db_password
+      - source: heatboard_prod_db_password
         target: heatboard_db_password
-      - source: heatboard_pool_token
+      - source: heatboard_prod_pool_token
         target: heatboard_pool_token
-      - source: heatboard_session_password
+      - source: heatboard_prod_session_password
         target: heatboard_session_password
-      - source: heatboard_discord_client_secret
+      - source: discord_client_secret_prod
         target: heatboard_discord_client_secret
-      - source: heatboard_nextauth_secret
+      - source: heatboard_prod_nextauth_secret
         target: heatboard_nextauth_secret
     volumes:
       - heatboard-migrations:/migrations
@@ -62,7 +62,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD_FILE: /run/secrets/heatboard_db_password
     secrets:
-      - source: heatboard_db_password
+      - source: heatboard_prod_db_password
         target: heatboard_db_password
     volumes:
       - heatboard-db-data:/var/lib/postgresql/data
@@ -103,7 +103,7 @@ services:
       DB_HOST: db
       DB_NAME: chauffagistes
     secrets:
-      - source: heatboard_db_password
+      - source: heatboard_prod_db_password
         target: db_password
     volumes:
       - heatboard-migrations:/migrations
@@ -135,13 +135,13 @@ networks:
     driver: overlay
 
 secrets:
-  heatboard_db_password:
+  heatboard_prod_db_password:
     external: true
-  heatboard_pool_token:
+  heatboard_prod_pool_token:
     external: true
-  heatboard_session_password:
+  heatboard_prod_session_password:
     external: true
-  heatboard_discord_client_secret:
+  discord_client_secret_prod:
     external: true
-  heatboard_nextauth_secret:
+  heatboard_prod_nextauth_secret:
     external: true

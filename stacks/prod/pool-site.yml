@@ -8,7 +8,7 @@ services:
       DB_HOST: pool-site-db
       HOSTNAME: "0.0.0.0"
     secrets:
-      - source: pool_site_db_password
+      - source: pool_site_prod_db_password
         target: db_password
     volumes:
       - pool-site-migrations:/migrations  # volume partagé avec migrator
@@ -43,7 +43,7 @@ services:
       POSTGRES_USER: pool_site
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
     secrets:
-      - source: pool_site_db_password
+      - source: pool_site_prod_db_password
         target: db_password
     volumes:
       - pool-site-db-data:/var/lib/postgresql/data
@@ -78,7 +78,7 @@ services:
       DB_HOST: pool-site-db
       DB_NAME: pool_site
     secrets:
-      - source: pool_site_db_password
+      - source: pool_site_prod_db_password
         target: db_password
     volumes:
       - pool-site-migrations:/migrations
@@ -108,5 +108,5 @@ networks:
     internal: true
 
 secrets:
-  pool_site_db_password:
+  pool_site_prod_db_password:
     external: true
