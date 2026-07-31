@@ -25,7 +25,7 @@ services:
     deploy:
       placement:
         constraints:
-          - node.labels.chauffagistes.host == docker-swarm-node02
+          - node.labels.chauffagistes.host == itrider
       resources:
         limits:
           cpus: "0.5"
@@ -70,7 +70,7 @@ services:
     deploy:
       placement:
         constraints:
-          - node.labels.chauffagistes.host == hugo
+          - node.labels.chauffagistes.host == itrider
       update_config:
         order: stop-first
       resources:

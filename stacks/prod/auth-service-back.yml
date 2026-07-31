@@ -24,7 +24,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == docker-swarm-node02
+          - node.labels.chauffagistes.host == itrider
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -70,7 +70,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == hugo
+          - node.labels.chauffagistes.host == itrider
       update_config:
         order: stop-first
       restart_policy:
