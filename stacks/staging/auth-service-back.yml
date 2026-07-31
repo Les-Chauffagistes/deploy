@@ -13,7 +13,7 @@ services:
         target: db_password
       - source: auth_staging_discord_client_id
         target: discord_client_id
-      - source: auth_staging_discord_client_secret
+      - source: discord_client_secret_staging
         target: discord_client_secret
       - source: auth_staging_jwt_secret
         target: jwt_secret
@@ -101,7 +101,7 @@ secrets:
     external: true
   auth_staging_discord_client_id:
     external: true
-  auth_staging_discord_client_secret:
+  discord_client_secret_staging:
     external: true
   auth_staging_jwt_secret:
     external: true

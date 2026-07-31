@@ -25,7 +25,7 @@ services:
         target: heatboard_staging_pool_token
       - source: heatboard_staging_session_password
         target: heatboard_staging_session_password
-      - source: heatboard_staging_discord_client_secret
+      - source: discord_client_secret_staging
         target: heatboard_staging_discord_client_secret
       - source: heatboard_staging_nextauth_secret
         target: heatboard_staging_nextauth_secret
@@ -141,7 +141,7 @@ secrets:
     external: true
   heatboard_staging_session_password:
     external: true
-  heatboard_staging_discord_client_secret:
+  discord_client_secret_staging:
     external: true
   heatboard_staging_nextauth_secret:
     external: true
