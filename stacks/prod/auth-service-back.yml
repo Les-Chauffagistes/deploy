@@ -6,7 +6,7 @@ services:
       POSTGRES_DB: auth
       DISCORD_CALLBACK_URL: https://api.auth.chauffagistes-btc.fr/discord/callback
       LIGHTNING_CALLBACK_URL: https://auth.chauffagistes-btc.fr/lightning/callback
-      DB_HOST: auth-service-back-db
+      DB_HOST: db
       DOMAIN_NAME: .chauffagistes-btc.fr
       DISCORD_CLIENT_ID: "1100450456091766907"
     secrets:
