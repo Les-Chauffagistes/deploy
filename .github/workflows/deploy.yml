@@ -10,7 +10,7 @@ on:
 
 jobs:
   # ─────────────────────────────────────────────
-  # Détection des changements par dossier
+  # Détection des changements du push par dossier
   # ─────────────────────────────────────────────
   changes:
     name: Detect changes
@@ -24,6 +24,10 @@ jobs:
       - uses: dorny/paths-filter@v3
         id: filter
         with:
+          # Compare au commit précédent de la branche poussée, pas à la
+          # branche par défaut. main et develop peuvent être identiques
+          # après une promotion en production.
+          base: ${{ github.ref }}
           filters: |
             staging:
               - 'stacks/staging/**'
