@@ -60,15 +60,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install yq
+      - name: Download yq
+        id: yq
         run: |
-          if ! command -v yq &> /dev/null; then
-            wget -qO /usr/local/bin/yq \
-              https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-            chmod +x /usr/local/bin/yq
-          fi
+          YQ_PATH="$RUNNER_TEMP/yq"
+          wget -qO "$YQ_PATH" \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod 755 "$YQ_PATH"
+          echo "path=$YQ_PATH" >> "$GITHUB_OUTPUT"
 
       - name: Vérifier que toutes les images prod sont versionnées
+        env:
+          YQ: ${{ steps.yq.outputs.path }}
         run: |
           FAILED=0
           for file in stacks/prod/*.yml; do
@@ -78,7 +81,7 @@ jobs:
                 echo "❌ Image non versionnée dans $file : $image"
                 FAILED=1
               fi
-            done < <(yq e '.services[].image' "$file")
+            done < <("$YQ" e '.services[].image' "$file")
           done
           if [[ "$FAILED" -eq 1 ]]; then
             echo ""
@@ -219,12 +222,10 @@ jobs:
         env:
           ORG_PAT: ${{ secrets.ORG_PAT }}
         run: |
-          if ! command -v yq &> /dev/null; then
-            wget -qO /tmp/yq \
-              https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-            chmod +x /tmp/yq
-            export PATH="/tmp:$PATH"
-          fi
+          YQ="$RUNNER_TEMP/yq"
+          wget -qO "$YQ" \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          chmod 755 "$YQ"
 
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
           GIT_TAG=${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
@@ -255,7 +256,7 @@ jobs:
 
           for file in stacks/${ENV}/*.yml; do
             service="$(basename "$file" .yml)"
-            IMAGE_TAG=$(yq e '.services.app.image // ""' "$file" | awk -F: '{print $NF}')
+            IMAGE_TAG=$("$YQ" e '.services.app.image // ""' "$file" | awk -F: '{print $NF}')
             [[ -z "$IMAGE_TAG" || "$IMAGE_TAG" == "null" ]] && continue
 
             REF=$([[ "$ENV" == "staging" ]] && echo "${IMAGE_TAG#sha-}" || echo "$IMAGE_TAG")
