@@ -7,6 +7,13 @@ on:
       - develop
     paths-ignore:
       - '_templates/**'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: Redéployer tous les stacks de l'environnement sélectionné
+        required: true
+        default: false
+        type: boolean
 
 jobs:
   # ─────────────────────────────────────────────
@@ -39,13 +46,15 @@ jobs:
   # ─────────────────────────────────────────────
   # Guard — vérifie que les images prod sont
   # toutes taguées en semver, jamais en SHA
-  # Uniquement sur main si stacks/prod a changé
+  # Sur main si stacks/prod a changé ou lors d'un redéploiement forcé
   # ─────────────────────────────────────────────
   guard-prod-images:
     name: Guard — no SHA in prod
     runs-on: [self-hosted, manager]
     needs: [changes]
-    if: github.ref == 'refs/heads/main' && needs.changes.outputs.prod == 'true'
+    if: |
+      github.ref == 'refs/heads/main' &&
+      (needs.changes.outputs.prod == 'true' || inputs.force_deploy)
 
     steps:
       - name: Checkout
@@ -88,11 +97,11 @@ jobs:
     needs: [changes, guard-prod-images]
     # Déployer si :
     # - guard skippé (pas de changement prod ou branche develop) ou guard passé
-    # - ET au moins un dossier a changé
+    # - ET au moins un dossier a changé, ou le déclenchement est forcé
     if: |
       always() &&
       (needs.guard-prod-images.result == 'success' || needs.guard-prod-images.result == 'skipped') &&
-      (needs.changes.outputs.core == 'true' || needs.changes.outputs.staging == 'true' || needs.changes.outputs.prod == 'true')
+      (inputs.force_deploy || needs.changes.outputs.core == 'true' || needs.changes.outputs.staging == 'true' || needs.changes.outputs.prod == 'true')
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
 
     steps:
@@ -100,7 +109,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Deploy core stack
-        if: needs.changes.outputs.core == 'true'
+        if: inputs.force_deploy || needs.changes.outputs.core == 'true'
         env:
           DOMAIN: ${{ vars.DOMAIN }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
@@ -117,6 +126,7 @@ jobs:
 
       - name: Deploy services
         if: |
+          inputs.force_deploy ||
           (github.ref == 'refs/heads/develop' && needs.changes.outputs.staging == 'true') ||
           (github.ref == 'refs/heads/main'    && needs.changes.outputs.prod    == 'true')
         run: |
@@ -133,9 +143,12 @@ jobs:
 
       - name: Verify convergence
         if: |
+          inputs.force_deploy ||
           needs.changes.outputs.core == 'true' ||
           (github.ref == 'refs/heads/develop' && needs.changes.outputs.staging == 'true') ||
           (github.ref == 'refs/heads/main'    && needs.changes.outputs.prod    == 'true')
+        env:
+          FORCE_DEPLOY: ${{ inputs.force_deploy }}
         run: |
           verify_stack() {
             local NAMESPACE=$1
@@ -174,10 +187,12 @@ jobs:
           FAILED=0
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
 
-          [[ "${{ needs.changes.outputs.core }}" == "true" ]] && \
-            { verify_stack "core" 180 || FAILED=1; }
+          if [[ "$FORCE_DEPLOY" == "true" || "${{ needs.changes.outputs.core }}" == "true" ]]; then
+            verify_stack "core" 180 || FAILED=1
+          fi
 
-          if [[ "${{ needs.changes.outputs.staging }}" == "true" && "${{ github.ref }}" == "refs/heads/develop" ]] || \
+          if [[ "$FORCE_DEPLOY" == "true" ]] || \
+             [[ "${{ needs.changes.outputs.staging }}" == "true" && "${{ github.ref }}" == "refs/heads/develop" ]] || \
              [[ "${{ needs.changes.outputs.prod }}"    == "true" && "${{ github.ref }}" == "refs/heads/main" ]]; then
             for file in stacks/${ENV}/*.yml; do
               stack="$(basename "$file" .yml)-${ENV}"
@@ -198,6 +213,7 @@ jobs:
 
       - name: Tag deployed commits
         if: |
+          inputs.force_deploy ||
           (github.ref == 'refs/heads/develop' && needs.changes.outputs.staging == 'true') ||
           (github.ref == 'refs/heads/main'    && needs.changes.outputs.prod    == 'true')
         env:
