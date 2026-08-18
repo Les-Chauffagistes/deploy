@@ -9,6 +9,7 @@ services:
       DB_HOST: db
       DOMAIN_NAME: .chauffagistes-btc.fr
       DISCORD_CLIENT_ID: "1100450456091766907"
+      ENVIRONMENT: production
     secrets:
       - source: auth_prod_db_password
         target: db_password

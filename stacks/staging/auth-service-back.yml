@@ -9,6 +9,7 @@ services:
       LIGHTNING_CALLBACK_URL: https://auth.staging.chauffagistes-btc.fr/lightning/callback
       DB_HOST: auth-service-back-staging_db
       DOMAIN_NAME: .chauffagistes-btc.fr
+      ENVIRONMENT: staging
     secrets:
       - source: auth_staging_db_password
         target: db_password
