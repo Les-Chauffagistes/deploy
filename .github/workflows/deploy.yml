@@ -259,7 +259,7 @@ jobs:
             IMAGE_TAG=$("$YQ" e '.services.app.image // ""' "$file" | awk -F: '{print $NF}')
             [[ -z "$IMAGE_TAG" || "$IMAGE_TAG" == "null" ]] && continue
 
-            REF=$([[ "$ENV" == "staging" ]] && echo "${IMAGE_TAG#sha-}" || echo "$IMAGE_TAG")
+            REF=$([[ "$ENV" == "staging" ]] && echo "${IMAGE_TAG#sha-}" || echo "v${IMAGE_TAG}")
 
             FULL_SHA=$(curl -s \
               -H "Authorization: token ${ORG_PAT}" \
