@@ -7,7 +7,7 @@ services:
       - POSTGRE_USER=postgres
       - POSTGRE_DB=chauffagistes
       - PORT=8050
-      - GATHER_STATS=false
+      - GATHER_STATS=true
     command: >
       sh -c "
       export POSTGRE_PASSWORD=$$(cat /run/secrets/history_server_db_password) &&
