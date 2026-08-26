@@ -44,7 +44,7 @@ services:
 
 configs:
   alertmanager_conf:
-    file: ./alertmanager.config.yml
+    file: ./alertmanager.config.yaml
 
 volumes:
   alertmanager-data:

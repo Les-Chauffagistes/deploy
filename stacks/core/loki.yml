@@ -25,9 +25,9 @@ services:
 
 configs:
   loki_conf:
-    file: ./loki.config.yml
+    file: ./loki.config.yaml
   loki_rules:
-    file: ./loki.rules.yml
+    file: ./loki.rules.yaml
 
 volumes:
   loki-data:

@@ -31,9 +31,9 @@ services:
 
 configs:
   prometheus_conf:
-    file: ./prometheus.config.yml
+    file: ./prometheus.config.yaml
   prometheus_rules:
-    file: ./prometheus.rules.yml
+    file: ./prometheus.rules.yaml
 
 volumes:
   prometheus-data:

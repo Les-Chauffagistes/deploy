@@ -21,7 +21,7 @@ services:
 
 configs:
   promtail_conf:
-    file: ./promtail.config.yml
+    file: ./promtail.config.yaml
 
 networks:
   chauffagistes-net:

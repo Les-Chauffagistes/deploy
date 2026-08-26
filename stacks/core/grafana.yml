@@ -37,7 +37,7 @@ services:
 
 configs:
   grafana_datasources:
-    file: ./grafana-datasources.yml
+    file: ./grafana-datasources.yaml
 
 volumes:
   grafana-data:
