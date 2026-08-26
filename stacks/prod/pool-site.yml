@@ -75,7 +75,7 @@ services:
     image: 10.10.0.3:5000/pool-site-migrator:1.0.0
     environment:
       DB_USER: pool_site
-      DB_HOST: pool-site-db
+      DB_HOST: pool-site-prod_db
       DB_NAME: pool_site
     secrets:
       - source: pool_site_prod_db_password
