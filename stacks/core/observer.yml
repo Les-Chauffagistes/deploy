@@ -1,0 +1,41 @@
+services:
+  observer:
+    image: 10.10.0.3:5000/observer:sha-eae815d
+    command: >
+      sh -c "
+      export GITHUB_WEBHOOK_SECRET=$$(cat /run/secrets/github_webhook_secret) &&
+      exec node server.js"
+    environment:
+      GITHUB_ORG: Les-Chauffagistes
+      GITHUB_REPOS: pool-site,heatboard,auth-service-back,auth-service-front,history-server,bitcoin-service
+      GITHUB_REVALIDATE_SECONDS: 30
+    secrets:
+      - source: observer_github_webhook_secret
+        target: github_webhook_secret
+    networks:
+      - traefik-public
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.observer.rule=Host(`observer.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.observer.entrypoints=websecure"
+        - "traefik.http.routers.observer.tls.certresolver=letsencrypt"
+        - "traefik.http.services.observer.loadbalancer.server.port=3000"
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+
+secrets:
+  observer_github_webhook_secret:
+    external: true
