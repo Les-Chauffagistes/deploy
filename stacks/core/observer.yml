@@ -4,6 +4,7 @@ services:
     command: >
       sh -c "
       export GITHUB_WEBHOOK_SECRET=$$(cat /run/secrets/github_webhook_secret) &&
+      export GITHUB_TOKEN=$$(cat /run/secrets/github_token) &&
       exec node server.js"
     environment:
       GITHUB_ORG: Les-Chauffagistes
@@ -12,6 +13,8 @@ services:
     secrets:
       - source: observer_github_webhook_secret
         target: github_webhook_secret
+      - source: observer_github_token
+        target: github_token
     networks:
       - traefik-public
       - chauffagistes-net
@@ -38,4 +41,6 @@ networks:
 
 secrets:
   observer_github_webhook_secret:
+    external: true
+  observer_github_token:
     external: true
