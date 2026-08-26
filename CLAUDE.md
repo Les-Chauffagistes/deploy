@@ -13,8 +13,9 @@ Dépôt d'orchestration Docker Swarm de l'organisation Les Chauffagistes. Il ne 
 | Label | Machine | Rôle |
 |---|---|---|
 | `node.labels.ingress == true` | VPS | Point d'entrée Traefik (ports 80/443) |
-| `node.labels.chauffagistes.host == hugo` | iMac (10.10.0.3) | Workloads et registry privé |
+| `node.labels.chauffagistes.host == hugo` | iMac (10.10.0.3), 4 CPU / 8 Go RAM | Workloads, registry privé, héberge le staging (faible activité) — cible par défaut pour tout nouveau déploiement |
 | `node.labels.chauffagistes.host == vps` | VPS | Workloads VPS |
+| `node.labels.chauffagistes.host == itrider` | itrider, 4 CPU / 8 Go RAM | Workloads — capacité supplémentaire si besoin d'étaler |
 
 ### Réseaux
 
@@ -109,6 +110,43 @@ Déclenché sur push `develop` (staging) et `main` (prod). Étapes :
 4. Créer les secrets sur le manager Swarm
 5. Ajouter le workflow `build.yml` dans le repo du service
 6. Committer — la CI déploie automatiquement
+
+## Monitoring
+
+Stack d'observabilité dans `stacks/core/` : Prometheus (métriques, service discovery Swarm natif
+via `dockerswarm_sd_configs`) + Loki/Promtail (logs) + Alertmanager (routage Discord, avec le sidecar
+`alertmanager-discord` qui reformate le webhook générique "slack" au format Discord) + Grafana
+(dashboards + Explore). `node-exporter` et `cadvisor` tournent en `mode: global` sur tous les nœuds.
+
+### Secrets requis (à créer une seule fois sur le manager)
+
+```bash
+printf "<webhook Discord>" | docker secret create core_discord_webhook -
+printf "<mot de passe fort>" | docker secret create core_grafana_admin_password -
+```
+
+### Faire remonter les métriques d'un microservice
+
+Ajouter ces labels Swarm dans `deploy.labels` du service (comme pour Traefik) :
+
+```yaml
+labels:
+  - "prometheus.scrape=true"
+  - "prometheus.port=8086"
+  # - "prometheus.path=/metrics"  # optionnel, défaut /metrics
+```
+
+Prometheus le détecte automatiquement au prochain cycle de service discovery, pas besoin de toucher
+`stacks/core/prometheus.config.yml`.
+
+### Alertes déjà en place
+
+- `ContainerRestartLoop` / `ServiceReplicasDown` (Prometheus, cAdvisor + `up`)
+- `ContainerMemoryNearLimit` / `NodeDiskSpaceLow` (Prometheus, node-exporter/cAdvisor)
+- `HighErrorLogRate` (Loki ruler, sur les logs contenant `error`/`fatal`/`crit`)
+
+Toutes routées vers Discord via Alertmanager. Ajouter une règle : éditer
+`stacks/core/prometheus.rules.yml` (métriques) ou `stacks/core/loki.rules.yml` (logs).
 
 ## Traefik
 

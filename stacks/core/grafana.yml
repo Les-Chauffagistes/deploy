@@ -1,0 +1,53 @@
+services:
+  grafana:
+    image: grafana/grafana-oss:11.2.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: "https://grafana.${DOMAIN}"
+    configs:
+      - source: grafana_datasources
+        target: /etc/grafana/provisioning/datasources/datasources.yml
+    secrets:
+      - source: core_grafana_admin_password
+        target: grafana_admin_password
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - chauffagistes-net
+      - traefik-public
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 300M
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+        - "traefik.http.routers.grafana.entrypoints=websecure"
+        - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+        - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+configs:
+  grafana_datasources:
+    file: ./grafana-datasources.yml
+
+volumes:
+  grafana-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+
+secrets:
+  core_grafana_admin_password:
+    external: true

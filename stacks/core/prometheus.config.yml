@@ -1,0 +1,85 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # Prometheus se scrape lui-même
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Traefik expose ses métriques sur un entrypoint dédié (voir core/traefik.yml)
+  - job_name: traefik
+    static_configs:
+      - targets: ["traefik:8082"]
+
+  # node-exporter et cAdvisor tournent en mode global : on passe par le
+  # Swarm service discovery pour scraper chaque tâche individuellement
+  # (le nom de service court fait du round-robin sur une seule tâche, pas toutes).
+  - job_name: node-exporter
+    dockerswarm_sd_configs:
+      - host: unix:///var/run/docker.sock
+        role: tasks
+    relabel_configs:
+      - source_labels: [__meta_dockerswarm_task_desired_state]
+        regex: running
+        action: keep
+      - source_labels: [__meta_dockerswarm_service_name]
+        regex: core_node-exporter
+        action: keep
+      - source_labels: [__meta_dockerswarm_node_hostname]
+        target_label: node
+      - source_labels: [__address__]
+        regex: '([^:]+):.*'
+        target_label: __address__
+        replacement: '${1}:9100'
+
+  - job_name: cadvisor
+    dockerswarm_sd_configs:
+      - host: unix:///var/run/docker.sock
+        role: tasks
+    relabel_configs:
+      - source_labels: [__meta_dockerswarm_task_desired_state]
+        regex: running
+        action: keep
+      - source_labels: [__meta_dockerswarm_service_name]
+        regex: core_cadvisor
+        action: keep
+      - source_labels: [__meta_dockerswarm_node_hostname]
+        target_label: node
+      - source_labels: [__address__]
+        regex: '([^:]+):.*'
+        target_label: __address__
+        replacement: '${1}:8080'
+
+  # Opt-in générique pour n'importe quel microservice : ajouter les labels
+  # Swarm `prometheus.scrape=true` + `prometheus.port=<port>` (et
+  # optionnellement `prometheus.path=/metrics`) dans deploy.labels du service.
+  - job_name: swarm-services
+    dockerswarm_sd_configs:
+      - host: unix:///var/run/docker.sock
+        role: tasks
+    relabel_configs:
+      - source_labels: [__meta_dockerswarm_task_desired_state]
+        regex: running
+        action: keep
+      - source_labels: [__meta_dockerswarm_service_label_prometheus_scrape]
+        regex: "true"
+        action: keep
+      - source_labels: [__meta_dockerswarm_service_name]
+        target_label: swarm_service
+      - source_labels: [__meta_dockerswarm_service_label_prometheus_path]
+        regex: '(.+)'
+        target_label: __metrics_path__
+      - source_labels: [__address__, __meta_dockerswarm_service_label_prometheus_port]
+        regex: '([^:]+):.*;(.+)'
+        target_label: __address__
+        replacement: '${1}:${2}'

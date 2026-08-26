@@ -1,0 +1,45 @@
+# Règles d'alerte Prometheus — évaluées par Prometheus, envoyées à Alertmanager
+# (core/alertmanager.yml) qui les relaie sur Discord.
+groups:
+  - name: swarm-containers
+    rules:
+      - alert: ContainerRestartLoop
+        expr: resets(container_start_time_seconds{container_label_com_docker_swarm_service_name!=""}[10m]) > 2
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redémarrages répétés : {{ $labels.container_label_com_docker_swarm_service_name }}"
+          description: "Le service Swarm {{ $labels.container_label_com_docker_swarm_service_name }} sur {{ $labels.instance }} a redémarré plus de 2 fois en 10 minutes."
+
+      - alert: ServiceReplicasDown
+        expr: up{job=~"node-exporter|cadvisor|traefik"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Cible injoignable : {{ $labels.job }} sur {{ $labels.instance }}"
+          description: "Prometheus n'arrive plus à scraper {{ $labels.job }} ({{ $labels.instance }}) depuis 2 minutes — le nœud ou le service est probablement down."
+
+  - name: swarm-resources
+    rules:
+      - alert: ContainerMemoryNearLimit
+        expr: |
+          container_memory_usage_bytes{container_label_com_docker_swarm_service_name!=""}
+            / on(id) container_spec_memory_limit_bytes{container_label_com_docker_swarm_service_name!=""} > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Mémoire proche de la limite : {{ $labels.container_label_com_docker_swarm_service_name }}"
+          description: "{{ $labels.container_label_com_docker_swarm_service_name }} utilise plus de 90% de sa limite mémoire depuis 5 minutes — risque d'OOM-kill imminent."
+
+      - alert: NodeDiskSpaceLow
+        expr: |
+          node_filesystem_avail_bytes{mountpoint="/host"} / node_filesystem_size_bytes{mountpoint="/host"} < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Espace disque faible sur {{ $labels.node }}"
+          description: "Moins de 10% d'espace disque restant sur {{ $labels.node }}."

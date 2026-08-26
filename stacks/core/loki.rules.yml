@@ -1,0 +1,16 @@
+# Règle d'alerte Loki (ruler intégré) — évaluée par Loki, envoyée au même
+# Alertmanager que Prometheus (core/alertmanager.yml).
+# Chemin imposé par le ruler en storage local + auth désactivé (tenant "fake") :
+# /loki/rules/fake/<nom-de-fichier>.yml
+groups:
+  - name: application-errors
+    rules:
+      - alert: HighErrorLogRate
+        expr: |
+          sum by (swarm_service) (count_over_time({swarm_service=~".+"} |~ `(?i)error|fatal|crit` [5m])) > 10
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pic de logs error/fatal sur {{ $labels.swarm_service }}"
+          description: "Plus de 10 lignes error/fatal/crit en 5 minutes pour {{ $labels.swarm_service }}."

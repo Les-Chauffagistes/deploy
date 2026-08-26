@@ -1,0 +1,58 @@
+services:
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    command: -config.file=/etc/alertmanager/alertmanager.yml
+    configs:
+      - source: alertmanager_conf
+        target: /etc/alertmanager/alertmanager.yml
+    volumes:
+      - alertmanager-data:/alertmanager
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+
+  # Reformate le webhook générique "slack" d'Alertmanager au format attendu
+  # par un webhook Discord (Alertmanager n'a pas de receiver Discord natif).
+  alertmanager-discord:
+    # Pas de tag versionné publié par le mainteneur (dernier push 2022) — épinglé
+    # par digest pour la reproductibilité plutôt que de suivre `latest`.
+    image: benjojo/alertmanager-discord@sha256:7d27cd8494b269fe592cf6a9d7f6bdf14ac628bba34c381dc43cf533eaa95158
+    command: >
+      sh -c "
+      export DISCORD_WEBHOOK=$$(cat /run/secrets/discord_webhook) &&
+      exec /alertmanager-discord"
+    secrets:
+      - source: core_discord_webhook
+        target: discord_webhook
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+      restart_policy:
+        condition: on-failure
+
+configs:
+  alertmanager_conf:
+    file: ./alertmanager.config.yml
+
+volumes:
+  alertmanager-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+
+secrets:
+  core_discord_webhook:
+    external: true

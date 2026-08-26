@@ -1,0 +1,43 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    configs:
+      - source: prometheus_conf
+        target: /etc/prometheus/prometheus.yml
+      - source: prometheus_rules
+        target: /etc/prometheus/rules/rules.yml
+    volumes:
+      - prometheus-data:/prometheus
+      # dockerswarm_sd_configs a besoin de l'API Swarm (liste des tasks/services
+      # cluster-wide), disponible uniquement sur un nœud manager.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+
+configs:
+  prometheus_conf:
+    file: ./prometheus.config.yml
+  prometheus_rules:
+    file: ./prometheus.rules.yml
+
+volumes:
+  prometheus-data:
+
+networks:
+  chauffagistes-net:
+    external: true
