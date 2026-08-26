@@ -118,11 +118,23 @@ via `dockerswarm_sd_configs`) + Loki/Promtail (logs) + Alertmanager (routage Dis
 `alertmanager-discord` qui reformate le webhook générique "slack" au format Discord) + Grafana
 (dashboards + Explore). `node-exporter` et `cadvisor` tournent en `mode: global` sur tous les nœuds.
 
-### Secrets requis (à créer une seule fois sur le manager)
+### Secrets requis
 
 ```bash
-printf "<webhook Discord>" | docker secret create core_discord_webhook -
+# Sur le manager, une seule fois
 printf "<mot de passe fort>" | docker secret create core_grafana_admin_password -
+```
+
+`alertmanager-discord` tourne sur une image `FROM scratch` (pas de shell dedans) : impossible d'y
+injecter un secret Docker via le wrapper `sh -c export $(cat ...)` utilisé ailleurs. Le webhook
+Discord est donc passé en flag CLI (`-webhook.url=${DISCORD_WEBHOOK_URL}`) interpolé par Compose au
+moment du `docker stack deploy`, exactement comme `TRAEFIK_DASHBOARD_AUTH` pour Traefik — c'est un
+**secret d'environnement GitHub Actions** (`DISCORD_WEBHOOK_URL`, environnements `Staging` et
+`Production`), pas un secret Docker Swarm :
+
+```bash
+gh secret set DISCORD_WEBHOOK_URL -R Les-Chauffagistes/deploy --env staging
+gh secret set DISCORD_WEBHOOK_URL -R Les-Chauffagistes/deploy --env production
 ```
 
 ### Faire remonter les métriques d'un microservice

@@ -117,6 +117,7 @@ jobs:
           DOMAIN: ${{ vars.DOMAIN }}
           ACME_EMAIL: ${{ vars.ACME_EMAIL }}
           TRAEFIK_DASHBOARD_AUTH: ${{ secrets.TRAEFIK_DASHBOARD_AUTH }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           COMPOSE_ARGS=""
           for file in stacks/core/*.yml; do

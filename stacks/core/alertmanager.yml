@@ -25,18 +25,16 @@ services:
   alertmanager-discord:
     # Pas de tag versionné publié par le mainteneur (dernier push 2022) — épinglé
     # par digest pour la reproductibilité plutôt que de suivre `latest`.
+    # Image FROM scratch (aucun shell dedans) : impossible d'y injecter le
+    # secret via un wrapper `sh -c export $(cat ...)` comme ailleurs dans ce
+    # repo. Le binaire accepte le webhook en flag CLI direct (`-webhook.url`),
+    # donc on passe par une interpolation Compose au moment du déploiement
+    # (même mécanisme que TRAEFIK_DASHBOARD_AUTH dans core/traefik.yml),
+    # alimentée par le secret GitHub Actions DISCORD_WEBHOOK_URL — pas par un
+    # secret Docker Swarm ici.
     image: benjojo/alertmanager-discord@sha256:7d27cd8494b269fe592cf6a9d7f6bdf14ac628bba34c381dc43cf533eaa95158
-    # L'image fixe ENTRYPOINT=["/go/bin/alertmanager-discord"] — `command:` seul
-    # ne l'écrase pas, il faut surcharger explicitement `entrypoint:` pour
-    # pouvoir exporter le secret via un shell avant de lancer le binaire.
-    entrypoint: ["sh", "-c"]
     command:
-      - >
-        export DISCORD_WEBHOOK=$$(cat /run/secrets/discord_webhook) &&
-        exec /go/bin/alertmanager-discord
-    secrets:
-      - source: core_discord_webhook
-        target: discord_webhook
+      - "-webhook.url=${DISCORD_WEBHOOK_URL}"
     networks:
       - chauffagistes-net
     deploy:
@@ -57,8 +55,4 @@ volumes:
 
 networks:
   chauffagistes-net:
-    external: true
-
-secrets:
-  core_discord_webhook:
     external: true
