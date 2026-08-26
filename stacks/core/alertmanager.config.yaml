@@ -7,10 +7,12 @@ route:
 
 receivers:
   - name: discord
-    # alertmanager-discord (core/alertmanager.yml) reformate le webhook
-    # generique "slack" d'Alertmanager au format Discord.
-    slack_configs:
-      - api_url: http://alertmanager-discord:9094/slack
+    # alertmanager-discord attend le JSON natif du webhook Alertmanager
+    # (alerts[]/commonLabels/commonAnnotations...) et construit lui-même
+    # l'embed Discord — ce n'est PAS un endpoint compatible Slack. Utiliser
+    # slack_configs échoue silencieusement : le notifier Slack d'Alertmanager
+    # exige un corps de réponse littéral "ok", que ce binaire ne renvoie
+    # jamais (il répond 200 vide). webhook_configs se contente d'un 2xx.
+    webhook_configs:
+      - url: http://alertmanager-discord:9094/
         send_resolved: true
-        title: '{{ .CommonLabels.alertname }}'
-        text: '{{ range .Alerts }}{{ .Annotations.summary }}{{ "\n" }}{{ .Annotations.description }}{{ "\n" }}{{ end }}'
