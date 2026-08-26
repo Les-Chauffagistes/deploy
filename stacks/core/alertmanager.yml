@@ -5,7 +5,7 @@ services:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
     configs:
-      - source: alertmanager_conf
+      - source: alertmanager_conf_v2
         target: /etc/alertmanager/alertmanager.yml
     volumes:
       - alertmanager-data:/alertmanager
@@ -47,7 +47,12 @@ services:
         condition: on-failure
 
 configs:
-  alertmanager_conf:
+  # Les configs Swarm sont immuables : toute modification du contenu de
+  # alertmanager.config.yaml doit s'accompagner d'un changement de nom ici
+  # ET dans configs: du service alertmanager ci-dessus (sinon "only updates
+  # to Labels are allowed" au déploiement). --prune nettoie l'ancien objet
+  # devenu orphelin.
+  alertmanager_conf_v2:
     file: ./alertmanager.config.yaml
 
 volumes:
