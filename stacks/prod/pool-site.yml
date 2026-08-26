@@ -5,7 +5,7 @@ services:
       NODE_ENV: production
       DB_USER: pool_site
       DB_NAME: pool_site
-      DB_HOST: pool-site-db
+      DB_HOST: pool-site-prod_db
       HOSTNAME: "0.0.0.0"
     secrets:
       - source: pool_site_prod_db_password
