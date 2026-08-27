@@ -23,9 +23,19 @@ groups:
       # Services pas encore migrés au JSON (Next.js : console.* brut). On garde
       # l'ancien comptage par ligne de texte, restreint aux flux sans label
       # "level" pour ne pas doubler-compter les services déjà structurés.
+      #
+      # core_registry est exclu : le handshake d'auth normal du protocole
+      # Docker Registry V2 (requête sans credentials → 401 → retry avec
+      # credentials, à chaque push) logue "error authorizing context: ...
+      # invalid authorization credential" en level=warning. La regex matche
+      # sur le texte brut de la ligne, pas sur le niveau, donc ce warning
+      # attendu (un par layer/manifest poussé) était compté comme une
+      # erreur et déclenchait une fausse alerte à chaque build CI. Les
+      # vraies pannes du registre restent couvertes par
+      # ContainerRestartLoop / ServiceReplicasDown.
       - alert: HighErrorLogRateLegacy
         expr: |
-          sum by (swarm_service) (count_over_time({swarm_service=~".+", level=""} |~ `(?i)error|fatal|crit` [5m])) > 10
+          sum by (swarm_service) (count_over_time({swarm_service=~".+", swarm_service!="core_registry", level=""} |~ `(?i)error|fatal|crit` [5m])) > 10
         for: 0m
         labels:
           severity: warning
