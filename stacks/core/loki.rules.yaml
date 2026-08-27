@@ -33,9 +33,16 @@ groups:
       # erreur et déclenchait une fausse alerte à chaque build CI. Les
       # vraies pannes du registre restent couvertes par
       # ContainerRestartLoop / ServiceReplicasDown.
+      #
+      # core_loki est exclu pour la même raison, en pire : Loki logue en
+      # info chaque requête exécutée, y compris celles du ruler — et la
+      # requête de HighErrorLogRateLegacy contient elle-même le texte
+      # "error|fatal|crit". La regex finit par se matcher sur ses propres
+      # logs de query à chaque évaluation, ce qui gonfle artificiellement
+      # le compte indépendamment de toute vraie erreur applicative.
       - alert: HighErrorLogRateLegacy
         expr: |
-          sum by (swarm_service) (count_over_time({swarm_service=~".+", swarm_service!="core_registry", level=""} |~ `(?i)error|fatal|crit` [5m])) > 10
+          sum by (swarm_service) (count_over_time({swarm_service=~".+", swarm_service!="core_registry", swarm_service!="core_loki", level=""} |~ `(?i)error|fatal|crit` [5m])) > 10
         for: 0m
         labels:
           severity: warning

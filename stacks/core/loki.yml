@@ -5,7 +5,7 @@ services:
     configs:
       - source: loki_conf
         target: /etc/loki/loki.yml
-      - source: loki_rules_v3
+      - source: loki_rules_v4
         target: /loki/rules/fake/rules.yml
     volumes:
       - loki-data:/loki
@@ -30,7 +30,7 @@ configs:
   # loki.rules.yaml nécessite un nouveau nom ici ET dans configs: du service
   # loki ci-dessus (sinon "only updates to Labels are allowed" au déploiement).
   # --prune nettoie l'ancien objet devenu orphelin.
-  loki_rules_v3:
+  loki_rules_v4:
     file: ./loki.rules.yaml
 
 volumes:
