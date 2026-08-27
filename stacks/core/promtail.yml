@@ -3,7 +3,7 @@ services:
     image: grafana/promtail:3.1.1
     command: -config.file=/etc/promtail/promtail.yml
     configs:
-      - source: promtail_conf
+      - source: promtail_conf_v2
         target: /etc/promtail/promtail.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -20,7 +20,11 @@ services:
         condition: on-failure
 
 configs:
-  promtail_conf:
+  # Les configs Swarm sont immuables : tout changement de contenu de
+  # promtail.config.yaml nécessite un nouveau nom ici ET dans configs: du
+  # service promtail ci-dessus (sinon "only updates to Labels are allowed"
+  # au déploiement). --prune nettoie l'ancien objet devenu orphelin.
+  promtail_conf_v2:
     file: ./promtail.config.yaml
 
 networks:

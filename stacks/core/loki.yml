@@ -5,7 +5,7 @@ services:
     configs:
       - source: loki_conf
         target: /etc/loki/loki.yml
-      - source: loki_rules
+      - source: loki_rules_v2
         target: /loki/rules/fake/rules.yml
     volumes:
       - loki-data:/loki
@@ -26,7 +26,11 @@ services:
 configs:
   loki_conf:
     file: ./loki.config.yaml
-  loki_rules:
+  # Les configs Swarm sont immuables : tout changement de contenu de
+  # loki.rules.yaml nécessite un nouveau nom ici ET dans configs: du service
+  # loki ci-dessus (sinon "only updates to Labels are allowed" au déploiement).
+  # --prune nettoie l'ancien objet devenu orphelin.
+  loki_rules_v2:
     file: ./loki.rules.yaml
 
 volumes:
