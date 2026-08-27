@@ -17,7 +17,7 @@ services:
         target: github_token
     configs:
       - source: observer_conf_v1
-        target: /app/observer.config.yaml
+        target: /app/observer.config.yml
         mode: 0444
     networks:
       - traefik-public
