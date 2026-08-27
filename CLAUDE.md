@@ -155,10 +155,28 @@ Prometheus le détecte automatiquement au prochain cycle de service discovery, p
 
 - `ContainerRestartLoop` / `ServiceReplicasDown` (Prometheus, cAdvisor + `up`)
 - `ContainerMemoryNearLimit` / `NodeDiskSpaceLow` (Prometheus, node-exporter/cAdvisor)
-- `HighErrorLogRate` (Loki ruler, sur les logs contenant `error`/`fatal`/`crit`)
+- `HighErrorLogRate` (Loki ruler, sur le label `level` extrait des logs JSON — voir
+  ci-dessous) / `HighErrorLogRateLegacy` (idem mais par regex texte, pour les
+  services qui n'émettent pas encore de JSON)
 
 Toutes routées vers Discord via Alertmanager. Ajouter une règle : éditer
-`stacks/core/prometheus.rules.yml` (métriques) ou `stacks/core/loki.rules.yml` (logs).
+`stacks/core/prometheus.rules.yaml` (métriques) ou `stacks/core/loki.rules.yaml` (logs).
+
+### Logs JSON et détection d'erreurs
+
+Les 5 services Python (loguru, `src/modules/logger/logger.py`) émettent leur sortie stdout en JSON
+(`serialize=True`) plutôt qu'en texte colorisé. C'est nécessaire pour l'alerting : en texte, une
+seule exception avec stack trace produit plusieurs lignes contenant `error`, et l'ancienne règle
+regex comptait chaque ligne comme une occurrence séparée (une seule exception pouvait déclencher
+`HighErrorLogRate`). En JSON, une exception = une ligne = un événement, stack trace incluse dans le
+champ `record.exception`.
+
+Promtail (`stacks/core/promtail.config.yaml`) parse cette sortie JSON pour en extraire
+`record.level.name` et le poser en label Loki `level`. `HighErrorLogRate` compte les événements
+`level=~"ERROR|CRIT"` — plus fiable qu'un pattern texte. Les services qui n'émettent pas de JSON
+(les 4 apps Next.js, encore en `console.*` brut) n'ont pas ce label : ils restent couverts par
+`HighErrorLogRateLegacy`, qui reprend l'ancien comptage par ligne (moins précis, faux positifs
+possibles sur une stack trace multi-lignes) tant qu'ils ne sont pas migrés au JSON.
 
 ## Traefik
 

@@ -5,12 +5,30 @@
 groups:
   - name: application-errors
     rules:
+      # Services avec logs JSON (loguru serialize=True, voir logger.py des services
+      # Python) : le label "level" vient du stage `json` de promtail.config.yaml et
+      # compte un événement par log réel. Une exception avec stack trace = 1 ligne
+      # JSON = 1 événement, contrairement à l'ancienne règle texte qui comptait
+      # chaque ligne de la trace comme une occurrence "error" séparée.
       - alert: HighErrorLogRate
         expr: |
-          sum by (swarm_service) (count_over_time({swarm_service=~".+"} |~ `(?i)error|fatal|crit` [5m])) > 10
+          sum by (swarm_service) (count_over_time({swarm_service=~".+", level=~"ERROR|CRIT"}[5m])) > 10
         for: 0m
         labels:
           severity: warning
         annotations:
-          summary: "Pic de logs error/fatal sur {{ $labels.swarm_service }}"
-          description: "Plus de 10 lignes error/fatal/crit en 5 minutes pour {{ $labels.swarm_service }}."
+          summary: "Pic de logs error/crit sur {{ $labels.swarm_service }}"
+          description: "Plus de 10 événements error/crit en 5 minutes pour {{ $labels.swarm_service }}."
+
+      # Services pas encore migrés au JSON (Next.js : console.* brut). On garde
+      # l'ancien comptage par ligne de texte, restreint aux flux sans label
+      # "level" pour ne pas doubler-compter les services déjà structurés.
+      - alert: HighErrorLogRateLegacy
+        expr: |
+          sum by (swarm_service) (count_over_time({swarm_service=~".+", level=""} |~ `(?i)error|fatal|crit` [5m])) > 10
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pic de logs error/fatal sur {{ $labels.swarm_service }} (logs non structurés)"
+          description: "Plus de 10 lignes error/fatal/crit en 5 minutes pour {{ $labels.swarm_service }} — service sans logs JSON, le seuil peut être atteint par une seule stack trace multi-lignes."
