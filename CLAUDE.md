@@ -171,12 +171,18 @@ regex comptait chaque ligne comme une occurrence séparée (une seule exception 
 `HighErrorLogRate`). En JSON, une exception = une ligne = un événement, stack trace incluse dans le
 champ `record.exception`.
 
-Promtail (`stacks/core/promtail.config.yaml`) parse cette sortie JSON pour en extraire
-`record.level.name` et le poser en label Loki `level`. `HighErrorLogRate` compte les événements
-`level=~"ERROR|CRIT"` — plus fiable qu'un pattern texte. Les services qui n'émettent pas de JSON
-(les 4 apps Next.js, encore en `console.*` brut) n'ont pas ce label : ils restent couverts par
-`HighErrorLogRateLegacy`, qui reprend l'ancien comptage par ligne (moins précis, faux positifs
-possibles sur une stack trace multi-lignes) tant qu'ils ne sont pas migrés au JSON.
+Promtail (`stacks/core/promtail.config.yaml`) parse cette sortie JSON pour en extraire le niveau et
+le poser en label Loki `level`. `HighErrorLogRate` compte les événements `level=~"ERROR|CRIT"` —
+plus fiable qu'un pattern texte. Les services qui n'émettent pas de JSON (les 4 apps Next.js, encore
+en `console.*` brut) n'ont pas ce label : ils restent couverts par `HighErrorLogRateLegacy`, qui
+reprend l'ancien comptage par ligne (moins précis, faux positifs possibles sur une stack trace
+multi-lignes) tant qu'ils ne sont pas migrés au JSON.
+
+Migration en cours vers le wrapper commun `chauff-cmn` (`chauff_cmn.logging`), qui remplace le
+module maison dupliqué dans les 5 services. Le module maison produit un JSON imbriqué
+(`record.level.name`), `chauff-cmn` produit un JSON plat (`level` à la racine). Promtail extrait les
+deux formats en parallèle le temps que tous les services migrent (voir commentaire dans
+`promtail.config.yaml`).
 
 ## Traefik
 

@@ -25,13 +25,25 @@ scrape_configs:
         target_label: container
     pipeline_stages:
       - docker: {}
-      # Les services Python (loguru serialize=True) émettent une ligne JSON par
-      # événement — on en extrait le niveau pour compter des événements dans les
-      # règles d'alerte plutôt que des lignes de texte (une stack trace ne fait
-      # plus gonfler le compte). Sur une ligne non-JSON (ex: Next.js), ce stage
-      # échoue silencieusement et le label "level" reste simplement absent.
+      # Les services Python émettent une ligne JSON par événement — on en extrait
+      # le niveau pour compter des événements dans les règles d'alerte plutôt que
+      # des lignes de texte (une stack trace ne fait plus gonfler le compte). Sur
+      # une ligne non-JSON (ex: Next.js), ce stage échoue silencieusement et le
+      # label "level" reste simplement absent.
+      #
+      # Deux formats coexistent pendant la migration vers le wrapper commun
+      # chauff-cmn (voir chauff_cmn.logging) :
+      #   - ancien module maison (src/modules/logger/logger.py, loguru
+      #     serialize=True) : JSON imbriqué, niveau sous record.level.name
+      #   - chauff-cmn : JSON plat, niveau sous level directement
+      # Le stage template priorise le format plat s'il est présent, sinon
+      # retombe sur l'imbriqué. À supprimer une fois les 5 services Python migrés.
       - json:
           expressions:
-            level: record.level.name
+            level_nested: record.level.name
+            level_flat: level
+      - template:
+          source: level
+          template: '{{ if .level_flat }}{{ .level_flat }}{{ else }}{{ .level_nested }}{{ end }}'
       - labels:
           level:

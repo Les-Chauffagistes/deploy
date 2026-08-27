@@ -71,6 +71,7 @@ jobs:
           build-args: ${{ inputs.build-args }}
           secrets: |
             npmrc=//npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
+            pipindex=http://${{ secrets.REGISTRY_USER }}:${{ secrets.REGISTRY_PASSWORD }}@10.10.0.3:8081/simple/
 
       - name: Summary
         run: |

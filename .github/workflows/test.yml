@@ -28,6 +28,9 @@ jobs:
       - name: Ensure Docker access (for Testcontainers)
         run: docker info > /dev/null
 
+      - name: Configure private pip index (chauff-cmn)
+        run: echo "UV_EXTRA_INDEX_URL=http://${{ secrets.REGISTRY_USER }}:${{ secrets.REGISTRY_PASSWORD }}@10.10.0.3:8081/simple/" >> "$GITHUB_ENV"
+
       - name: Install dependencies
         run: |
           uv venv
