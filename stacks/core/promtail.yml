@@ -3,11 +3,17 @@ services:
     image: grafana/promtail:3.1.1
     command: -config.file=/etc/promtail/promtail.yml
     configs:
-      - source: promtail_conf_v2
+      - source: promtail_conf_v3
         target: /etc/promtail/promtail.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Position de lecture par nœud (mode: global) : sans volume nommé, ce fichier
+      # vit dans le rootfs éphémère du conteneur et repart de zéro à chaque
+      # redéploiement de promtail, qui rejoue alors tout l'historique des logs
+      # Docker de chaque conteneur — rejeté en masse par Loki (reject_old_samples,
+      # 7j) mais générant un gros pic de "final error sending batch".
+      - promtail-positions:/positions
     networks:
       - chauffagistes-net
     deploy:
@@ -24,8 +30,11 @@ configs:
   # promtail.config.yaml nécessite un nouveau nom ici ET dans configs: du
   # service promtail ci-dessus (sinon "only updates to Labels are allowed"
   # au déploiement). --prune nettoie l'ancien objet devenu orphelin.
-  promtail_conf_v2:
+  promtail_conf_v3:
     file: ./promtail.config.yaml
+
+volumes:
+  promtail-positions:
 
 networks:
   chauffagistes-net:
