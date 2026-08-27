@@ -1,0 +1,34 @@
+services:
+  verdaccio:
+    image: verdaccio/verdaccio:6.7.3
+    configs:
+      - source: verdaccio_conf
+        target: /verdaccio/conf/config.yaml
+    volumes:
+      - verdaccio-storage:/verdaccio/storage
+    ports:
+      - "10.10.0.3:4873:4873"
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+configs:
+  verdaccio_conf:
+    file: ./verdaccio.config.yaml
+
+volumes:
+  verdaccio-storage:
+
+networks:
+  chauffagistes-net:
+    external: true
