@@ -1,6 +1,6 @@
 services:
   pypiserver:
-    image: pypiserver/pypiserver:v2.3.0
+    image: pypiserver/pypiserver:v2.4.1
     command:
       - run
       - -p
