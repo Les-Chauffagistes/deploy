@@ -3,7 +3,7 @@ services:
     image: grafana/promtail:3.1.1
     command: -config.file=/etc/promtail/promtail.yml
     configs:
-      - source: promtail_conf_v3
+      - source: promtail_conf_v4
         target: /etc/promtail/promtail.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -30,7 +30,7 @@ configs:
   # promtail.config.yaml nécessite un nouveau nom ici ET dans configs: du
   # service promtail ci-dessus (sinon "only updates to Labels are allowed"
   # au déploiement). --prune nettoie l'ancien objet devenu orphelin.
-  promtail_conf_v3:
+  promtail_conf_v4:
     file: ./promtail.config.yaml
 
 volumes:
