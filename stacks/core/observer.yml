@@ -1,6 +1,6 @@
 services:
   observer:
-    image: 10.10.0.3:5000/observer:sha-eae815d
+    image: 10.10.0.3:5000/observer:sha-37af83a
     command: >
       sh -c "
       export GITHUB_WEBHOOK_SECRET=$$(cat /run/secrets/github_webhook_secret) &&
@@ -15,6 +15,10 @@ services:
         target: github_webhook_secret
       - source: observer_github_token
         target: github_token
+    configs:
+      - source: observer_conf_v1
+        target: /app/observer.config.yaml
+        mode: 0444
     networks:
       - traefik-public
       - chauffagistes-net
@@ -44,3 +48,12 @@ secrets:
     external: true
   observer_github_token:
     external: true
+
+configs:
+  # Les configs Swarm sont immuables : toute modification du contenu de
+  # observer.config.yaml doit s'accompagner d'un changement de nom ici
+  # ET dans configs: du service observer ci-dessus (sinon "only updates
+  # to Labels are allowed" au déploiement). --prune nettoie l'ancien objet
+  # devenu orphelin.
+  observer_conf_v1:
+    file: ./observer.config.yaml

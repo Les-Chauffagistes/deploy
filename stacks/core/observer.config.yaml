@@ -1,0 +1,13 @@
+includeUngrouped: true
+pinned:
+  repo: deploy
+  environments:
+    - label: Staging
+      branch: develop
+    - label: Production
+      branch: main
+groups:
+  - name: Microservices
+    repos: [auth-service-back, coins-service, bitcoin-service, history-server]
+  - name: Frontends
+    repos: [pool-site, heatboard, auth-service-front]
