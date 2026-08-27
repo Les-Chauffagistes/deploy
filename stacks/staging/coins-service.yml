@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/coins-service:sha-cb9fa68
+    image: 10.10.0.3:5000/coins-service:sha-e6fd179
     environment:
       NODE_ENV: staging
       SERVER_PORT: "8095"
