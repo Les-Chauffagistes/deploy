@@ -16,7 +16,7 @@ services:
       - source: observer_github_token
         target: github_token
     configs:
-      - source: observer_conf_v1
+      - source: observer_conf_v2
         target: /app/observer.config.yml
         mode: 0444
     networks:
@@ -55,5 +55,5 @@ configs:
   # ET dans configs: du service observer ci-dessus (sinon "only updates
   # to Labels are allowed" au déploiement). --prune nettoie l'ancien objet
   # devenu orphelin.
-  observer_conf_v1:
+  observer_conf_v2:
     file: ./observer.config.yaml
