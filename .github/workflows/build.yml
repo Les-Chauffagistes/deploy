@@ -60,6 +60,36 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
+      # Verdaccio (@chauffagistes/*, npm) n'accepte pas un token statique comme le
+      # pypiserver ou GitHub Packages : il faut échanger user/password contre un
+      # token de session à chaque run (même mécanique que release.yml de chauff-cmn).
+      - name: Get verdaccio auth token
+        id: verdaccio-auth
+        run: |
+          TOKEN=$(curl -s -u "${{ secrets.REGISTRY_USER }}:${{ secrets.REGISTRY_PASSWORD }}" \
+            -X PUT "http://10.10.0.3:4873/-/user/org.couchdb.user:${{ secrets.REGISTRY_USER }}" \
+            -H 'Content-Type: application/json' \
+            -d "{\"name\":\"${{ secrets.REGISTRY_USER }}\",\"password\":\"${{ secrets.REGISTRY_PASSWORD }}\"}" \
+            | python3 -c "import json,sys; print(json.load(sys.stdin)['token'])")
+          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ] || [ "$TOKEN" = "undefined" ]; then
+            echo "Échec de l'authentification Verdaccio : pas de token reçu"
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      # .npmrc a besoin de plusieurs lignes (GitHub Packages + verdaccio) : le champ
+      # `secrets:` de build-push-action ne supporte qu'une valeur par ligne, donc on
+      # passe par un fichier + `secret-files:` pour le secret "npmrc".
+      - name: Write CI .npmrc
+        run: |
+          cat > "$RUNNER_TEMP/ci.npmrc" <<EOF
+          //npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
+          @chauffagistes:registry=http://10.10.0.3:4873/
+          //10.10.0.3:4873/:_authToken=${{ steps.verdaccio-auth.outputs.token }}
+          //10.10.0.3:4873/:always-auth=true
+          EOF
+
       - name: Build & Push image
         uses: docker/build-push-action@v5
         with:
@@ -70,8 +100,9 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ inputs.build-args }}
           secrets: |
-            npmrc=//npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
             pipindex=http://${{ secrets.REGISTRY_USER }}:${{ secrets.REGISTRY_PASSWORD }}@10.10.0.3:8081/simple/
+          secret-files: |
+            npmrc=${{ runner.temp }}/ci.npmrc
 
       - name: Summary
         run: |
