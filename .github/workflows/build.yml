@@ -21,6 +21,10 @@ on:
         required: true
       REGISTRY_PASSWORD:
         required: true
+      VERDACCIO_PASSWORD:
+        required: true
+      PYPISERVER_PASSWORD:
+        required: true
       ORG_PAT:
         required: true
 
@@ -66,10 +70,10 @@ jobs:
       - name: Get verdaccio auth token
         id: verdaccio-auth
         run: |
-          TOKEN=$(curl -s -u "${{ secrets.REGISTRY_USER }}:${{ secrets.REGISTRY_PASSWORD }}" \
+          TOKEN=$(curl -s -u "${{ secrets.REGISTRY_USER }}:${{ secrets.VERDACCIO_PASSWORD }}" \
             -X PUT "http://10.10.0.3:4873/-/user/org.couchdb.user:${{ secrets.REGISTRY_USER }}" \
             -H 'Content-Type: application/json' \
-            -d "{\"name\":\"${{ secrets.REGISTRY_USER }}\",\"password\":\"${{ secrets.REGISTRY_PASSWORD }}\"}" \
+            -d "{\"name\":\"${{ secrets.REGISTRY_USER }}\",\"password\":\"${{ secrets.VERDACCIO_PASSWORD }}\"}" \
             | python3 -c "import json,sys; print(json.load(sys.stdin)['token'])")
           if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ] || [ "$TOKEN" = "undefined" ]; then
             echo "Échec de l'authentification Verdaccio : pas de token reçu"
@@ -100,7 +104,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ inputs.build-args }}
           secrets: |
-            pipindex=http://${{ secrets.REGISTRY_USER }}:${{ secrets.REGISTRY_PASSWORD }}@10.10.0.3:8081/simple/
+            pipindex=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@10.10.0.3:8081/simple/
           secret-files: |
             npmrc=${{ runner.temp }}/ci.npmrc
 
