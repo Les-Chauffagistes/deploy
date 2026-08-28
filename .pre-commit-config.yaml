@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (détection de secrets)
+        description: Bloque le commit si un secret est détecté (config voir .gitleaks.toml)
+        entry: gitleaks protect --staged --redact --verbose
+        language: system
+        pass_filenames: false
