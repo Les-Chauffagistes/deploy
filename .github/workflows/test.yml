@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: "3.13"
+    secrets:
+      REGISTRY_USER:
+        required: true
+      PYPISERVER_PASSWORD:
+        required: true
 
 jobs:
   test:
@@ -29,7 +34,9 @@ jobs:
         run: docker info > /dev/null
 
       - name: Configure private pip index (chauff-cmn)
-        run: echo "UV_EXTRA_INDEX_URL=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@10.10.0.3:8081/simple/" >> "$GITHUB_ENV"
+        run: |
+          echo "UV_EXTRA_INDEX_URL=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@10.10.0.3:8081/simple/" >> "$GITHUB_ENV"
+          echo "UV_INSECURE_HOST=10.10.0.3:8081" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: |
