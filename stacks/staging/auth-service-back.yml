@@ -1,15 +1,6 @@
 services:
   app:
     image: 10.10.0.3:5000/auth-service-back:sha-f5fc296
-    # TEST TEMPORAIRE — override volontaire pour valider la detection de
-    # crashloop post-convergence en conditions reelles (a retirer juste apres).
-    # Sert /health correctement ~20s (le temps de passer N/N) puis crashe,
-    # simule exactement le bug historique sans avoir besoin de pousser une
-    # nouvelle image sur le registre prive.
-    command:
-      - python3
-      - -c
-      - "import http.server,time,sys\nclass H(http.server.BaseHTTPRequestHandler):\n def do_GET(s):\n  if s.path=='/health':\n   s.send_response(200); s.end_headers(); s.wfile.write(b'ok')\n  else:\n   s.send_response(404); s.end_headers()\n def log_message(s,*a): pass\nd=http.server.HTTPServer(('0.0.0.0',8080),H); d.timeout=1\nt=time.time()+20\nwhile time.time()<t: d.handle_request()\nsys.exit(1)\n"
     environment:
       SERVER_PORT: "8080"
       POSTGRES_DB: auth
