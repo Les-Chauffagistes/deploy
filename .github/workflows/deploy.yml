@@ -162,23 +162,53 @@ jobs:
 
             echo "── Vérification stack: $NAMESPACE (timeout ${TIMEOUT}s)"
 
+            # Le nombre de replicas atteint sa cible bien avant que Swarm ait fini
+            # de surveiller le rollout (fenêtre update_config.monitor) : un service
+            # peut passer par N/N en pleine phase "updating" puis partir en rollback
+            # juste après si le healthcheck échoue. On n'attend donc pas seulement
+            # les replicas, mais aussi UpdateStatus == completed (ou absent, pour un
+            # premier déploiement) sur les services qui ont un update_config.
             while [ $ELAPSED -lt $TIMEOUT ]; do
-              FAILING=$(docker service ls \
-                --filter "label=com.docker.stack.namespace=${NAMESPACE}" \
-                --format "{{.Name}} {{.Replicas}}" \
-                | while read -r name replicas; do
-                    echo "$name" | grep -q "_migrator" && continue
-                    current=$(echo "$replicas" | cut -d'/' -f1)
-                    target=$(echo "$replicas" | cut -d'/' -f2)
-                    [ "$current" != "$target" ] && echo "$name"
-                  done)
+              local BAD_UPDATE=""
+              local NOT_READY=""
 
-              if [ -z "$FAILING" ]; then
+              while read -r name replicas; do
+                [ -z "$name" ] && continue
+                echo "$name" | grep -q "_migrator" && continue
+
+                current=$(echo "$replicas" | cut -d'/' -f1)
+                target=$(echo "$replicas" | cut -d'/' -f2)
+                [ "$current" != "$target" ] && NOT_READY="$NOT_READY $name"
+
+                update_state=$(docker service inspect \
+                  --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}' \
+                  "$name" 2>/dev/null)
+
+                case "$update_state" in
+                  rollback_started|rollback_completed|paused)
+                    message=$(docker service inspect --format '{{.UpdateStatus.Message}}' "$name" 2>/dev/null)
+                    echo "❌ $name : rollout en échec (état: $update_state) — $message"
+                    BAD_UPDATE="$BAD_UPDATE $name"
+                    ;;
+                  updating)
+                    NOT_READY="$NOT_READY $name(update en cours)"
+                    ;;
+                esac
+              done < <(docker service ls \
+                --filter "label=com.docker.stack.namespace=${NAMESPACE}" \
+                --format "{{.Name}} {{.Replicas}}")
+
+              if [ -n "$BAD_UPDATE" ]; then
+                echo "❌ Rollback déclenché par Swarm pour :$BAD_UPDATE"
+                return 1
+              fi
+
+              if [ -z "$NOT_READY" ]; then
                 echo "✅ $NAMESPACE convergé"
                 return 0
               fi
 
-              echo "  En attente : $FAILING ($ELAPSED/${TIMEOUT}s)"
+              echo "  En attente :$NOT_READY ($ELAPSED/${TIMEOUT}s)"
               sleep $INTERVAL
               ELAPSED=$((ELAPSED + INTERVAL))
             done
@@ -200,7 +230,7 @@ jobs:
              [[ "${{ needs.changes.outputs.prod }}"    == "true" && "${{ github.ref }}" == "refs/heads/main" ]]; then
             for file in stacks/${ENV}/*.yml; do
               stack="$(basename "$file" .yml)-${ENV}"
-              verify_stack "$stack" 120 || FAILED=1
+              verify_stack "$stack" 150 || FAILED=1
             done
           fi
 
