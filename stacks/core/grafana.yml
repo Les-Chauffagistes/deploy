@@ -7,7 +7,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: "https://grafana.${DOMAIN}"
     configs:
-      - source: grafana_datasources
+      - source: grafana_datasources_v2
         target: /etc/grafana/provisioning/datasources/datasources.yml
     secrets:
       - source: core_grafana_admin_password
@@ -36,7 +36,10 @@ services:
         - "traefik.http.services.grafana.loadbalancer.server.port=3000"
 
 configs:
-  grafana_datasources:
+  # Les configs Swarm sont immuables : tout changement de contenu de
+  # grafana-datasources.yaml nécessite un nouveau nom ici (voir loki.yml
+  # pour le même piège). --prune nettoie l'ancien objet devenu orphelin.
+  grafana_datasources_v2:
     file: ./grafana-datasources.yaml
 
 volumes:
