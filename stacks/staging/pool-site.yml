@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/pool-site:sha-455608f
+    image: 10.10.0.3:5000/pool-site:sha-c23123c
     environment:
       NODE_ENV: staging
       DB_USER: pool_site
@@ -72,7 +72,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/pool-site-migrator:sha-455608f
+    image: 10.10.0.3:5000/pool-site-migrator:sha-c23123c
     environment:
       DB_USER: pool_site
       DB_HOST: pool-site-staging_db
