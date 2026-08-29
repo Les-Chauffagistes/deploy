@@ -2,6 +2,7 @@ apiVersion: 1
 
 datasources:
   - name: Prometheus
+    uid: prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
@@ -9,7 +10,28 @@ datasources:
     editable: false
 
   - name: Loki
+    uid: loki
     type: loki
     access: proxy
     url: http://loki:3100
     editable: false
+
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: "-1h"
+        spanEndTimeShift: "1h"
+        filterByTraceID: false
+        filterBySpanID: false
+        customQuery: true
+        # Filtre par sous-chaîne plutôt que par champ JSON nommé : le nom exact
+        # du champ trace id diffère entre l'access log Traefik (TraceID) et les
+        # futurs logs applicatifs chauff-cmn (trace_id) — à unifier une fois
+        # que les apps loggent effectivement le trace id (cf traceparent).
+        query: '{swarm_stack=~".+"} |= "${__trace.traceId}"'
