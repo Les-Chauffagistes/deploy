@@ -28,7 +28,7 @@ services:
           - node.labels.chauffagistes.host == hugo
       update_config:
         order: start-first
-        monitor: 90s
+        monitor: 60s
         failure_action: rollback
       rollback_config:
         order: stop-first

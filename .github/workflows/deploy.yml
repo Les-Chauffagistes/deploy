@@ -218,11 +218,28 @@ jobs:
             return 1
           }
 
-          FAILED=0
+          # Chaque stack avec update_config paye sa propre fenêtre "monitor" en
+          # bloquant (cf. verify_stack). Séquentiellement, un force_deploy qui
+          # touche N stacks paierait N × monitor. On lance donc une vérification
+          # par stack en arrière-plan et on les attend toutes en parallèle : le
+          # temps total devient le max des monitors, pas leur somme.
+          LOGDIR=$(mktemp -d)
+
+          run_verify() {
+            local namespace=$1
+            local timeout=$2
+            local rc=0
+            verify_stack "$namespace" "$timeout" > "$LOGDIR/$namespace.log" 2>&1 || rc=$?
+            echo "$rc" > "$LOGDIR/$namespace.exit"
+          }
+
+          PIDS=()
+          NAMES=()
           ENV=${{ github.ref == 'refs/heads/main' && 'prod' || 'staging' }}
 
           if [[ "$FORCE_DEPLOY" == "true" || "${{ needs.changes.outputs.core }}" == "true" ]]; then
-            verify_stack "core" 180 || FAILED=1
+            run_verify "core" 180 &
+            PIDS+=($!); NAMES+=("core")
           fi
 
           if [[ "$FORCE_DEPLOY" == "true" ]] || \
@@ -230,9 +247,21 @@ jobs:
              [[ "${{ needs.changes.outputs.prod }}"    == "true" && "${{ github.ref }}" == "refs/heads/main" ]]; then
             for file in stacks/${ENV}/*.yml; do
               stack="$(basename "$file" .yml)-${ENV}"
-              verify_stack "$stack" 150 || FAILED=1
+              run_verify "$stack" 120 &
+              PIDS+=($!); NAMES+=("$stack")
             done
           fi
+
+          for pid in "${PIDS[@]}"; do
+            wait "$pid" || true
+          done
+
+          FAILED=0
+          for name in "${NAMES[@]}"; do
+            echo "════ $name ════"
+            cat "$LOGDIR/$name.log"
+            [ "$(cat "$LOGDIR/$name.exit")" != "0" ] && FAILED=1
+          done
 
           if [ $FAILED -eq 1 ]; then
             echo ""
