@@ -7,11 +7,15 @@ services:
       DB_HOST: hash-contenders-referee-staging_db
       DB_NAME: chauffagistes
       API_URL: wss://shares-ws.chauffagistes-btc.fr/ws
+      AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
+      FRONTEND_URL: https://contenders.staging.chauffagistes-btc.fr
     secrets:
       - source: referee_staging_db_password
         target: db_password
       - source: referee_staging_api_token
         target: api_token
+      - source: contenders_staging_jwt_secret
+        target: jwt_secret
     networks:
       - chauffagistes-net
       - traefik-public
@@ -95,4 +99,6 @@ secrets:
   referee_staging_db_password:
     external: true
   referee_staging_api_token:
+    external: true
+  contenders_staging_jwt_secret:
     external: true
