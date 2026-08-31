@@ -10,4 +10,4 @@ groups:
   - name: Microservices
     repos: [auth-service-back, coins-service, bitcoin-service, history-server, hash-contenders-referee]
   - name: Frontends
-    repos: [pool-site, heatboard, auth-service-front, hash-contenders]
+    repos: [pool-site, heatboard, auth-service-front, hash-contenders, shop]
