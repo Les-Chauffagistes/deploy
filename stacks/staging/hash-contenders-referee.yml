@@ -49,6 +49,7 @@ services:
       - referee-staging-db-data:/var/lib/postgresql/data
     networks:
       - referee-staging-internal
+      - referee-staging-db-expose
     ports:
       - target: 5432
         published: 5437
@@ -87,6 +88,8 @@ networks:
   referee-staging-internal:
     driver: overlay
     internal: true
+  referee-staging-db-expose:
+    driver: overlay
 
 secrets:
   referee_staging_db_password:
