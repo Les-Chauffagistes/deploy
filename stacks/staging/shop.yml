@@ -1,0 +1,120 @@
+services:
+  app:
+    image: 10.10.0.3:5000/shop:sha-4a2fa20
+    environment:
+      NODE_ENV: staging
+      DB_USER: shop
+      DB_NAME: shop
+      DB_HOST: shop-staging_db
+      HOSTNAME: "0.0.0.0"
+      BASE_URL: shop.staging.chauffagistes-btc.fr
+      AUTH_URL: https://auth.staging.chauffagistes-btc.fr
+      AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
+      ADMIN_USER_IDS: 92, 88, 272
+    secrets:
+      - source: shop_staging_db_password
+        target: db_password
+      - source: auth_staging_jwt_secret
+        target: jwt_secret
+    volumes:
+      - shop-staging-migrations:/migrations  # volume partagé avec migrator
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - shop-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.shop-staging.rule=Host(`shop.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.shop-staging.entrypoints=websecure"
+        - "traefik.http.routers.shop-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.shop-staging.loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shop
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: shop_staging_db_password
+        target: db_password
+    volumes:
+      - shop-staging-db-data:/var/lib/postgresql/data
+    networks:
+      - shop-staging-internal
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  migrator:
+    image: 10.10.0.3:5000/shop-migrator:sha-4a2fa20
+    environment:
+      DB_USER: shop
+      DB_HOST: shop-staging_db
+      DB_NAME: shop
+    secrets:
+      - source: shop_staging_db_password
+        target: db_password
+    volumes:
+      - shop-staging-migrations:/migrations
+    networks:
+      - shop-staging-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+volumes:
+  shop-staging-db-data:
+  shop-staging-migrations:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  shop-staging-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  shop_staging_db_password:
+    external: true
+  auth_staging_jwt_secret:
+    external: true
