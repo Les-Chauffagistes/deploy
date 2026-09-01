@@ -10,7 +10,7 @@ services:
       BASE_URL: shop.staging.chauffagistes-btc.fr
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
-      ADMIN_USER_IDS: 92, 88, 272
+      ADMIN_USER_IDS: 90, 92, 88, 272
     secrets:
       - source: shop_staging_db_password
         target: db_password
