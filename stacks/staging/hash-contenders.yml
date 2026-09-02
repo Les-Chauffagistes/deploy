@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/hash-contenders:sha-f0a36d3
+    image: 10.10.0.3:5000/hash-contenders:sha-523648e
     environment:
       HOSTNAME: 0.0.0.0
       API_URL: https://api.contenders.staging.chauffagistes-btc.fr
@@ -50,7 +50,7 @@ services:
         - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
 
   migrator:
-    image: 10.10.0.3:5000/hash-contenders-migrator:sha-f0a36d3
+    image: 10.10.0.3:5000/hash-contenders-migrator:sha-523648e
     environment:
       DB_HOST: hash-contenders-staging_db
       DB_USER: postgres
