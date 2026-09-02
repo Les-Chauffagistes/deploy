@@ -22,6 +22,12 @@ services:
       placement:
         constraints:
           - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
       resources:
         limits:
           cpus: "0.5"

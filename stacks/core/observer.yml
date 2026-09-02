@@ -24,6 +24,12 @@ services:
       - chauffagistes-net
     deploy:
       replicas: 1
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
       restart_policy:
         condition: on-failure
       resources:
