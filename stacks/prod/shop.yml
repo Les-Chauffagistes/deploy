@@ -10,7 +10,7 @@ services:
       BASE_URL: shop.chauffagistes-btc.fr
       AUTH_URL: https://auth.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
-      ADMIN_USER_IDS: 90, 92, 88, 271, 272
+      ADMIN_USER_IDS: 271, 90
     secrets:
       - source: shop_prod_db_password
         target: db_password
