@@ -19,9 +19,6 @@ services:
       - traefik-public
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
       update_config:
         order: start-first
         monitor: 60s

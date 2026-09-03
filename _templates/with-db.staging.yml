@@ -21,9 +21,6 @@ services:
       - MY-SERVICE-staging-internal
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo  # à ajuster selon la répartition
       update_config:
         order: start-first
         monitor: 60s

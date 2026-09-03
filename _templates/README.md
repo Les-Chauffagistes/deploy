@@ -21,7 +21,8 @@ cp stacks/_templates/no-db.prod.yml    stacks/prod/share-viewer.yml
 Remplacer dans les deux fichiers :
 - `MY-SERVICE` → `share-viewer` (kebab-case, utilisé dans les noms Docker et les routes Traefik)
 - `MY_SERVICE` → `share_viewer` (snake_case, utilisé dans les noms de secrets)
-- Ajuster `node.labels.chauffagistes.host` selon la répartition de charge souhaitée
+- `app` n'est pas pinné à un nœud (Swarm choisit) — seul `db` doit rester pinné, à cause de
+  son volume local (voir "Répartition des nœuds" ci-dessous)
 
 ---
 
