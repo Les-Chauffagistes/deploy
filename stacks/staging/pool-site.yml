@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/pool-site:sha-c23123c
+    image: 10.10.0.3:5000/pool-site:sha-b2e29be
     environment:
       NODE_ENV: staging
       DB_USER: pool_site
@@ -10,17 +10,12 @@ services:
     secrets:
       - source: pool_site_staging_db_password
         target: db_password
-    volumes:
-      - pool-site-staging-migrations:/migrations  # volume partagé avec migrator
     networks:
       - chauffagistes-net
       - traefik-public
       - pool-site-staging-internal
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
       update_config:
         order: start-first
         monitor: 60s
@@ -77,32 +72,8 @@ services:
           cpus: "0.5"
           memory: 256M
 
-  migrator:
-    image: 10.10.0.3:5000/pool-site-migrator:sha-c23123c
-    environment:
-      DB_USER: pool_site
-      DB_HOST: pool-site-staging_db
-      DB_NAME: pool_site
-    secrets:
-      - source: pool_site_staging_db_password
-        target: db_password
-    volumes:
-      - pool-site-staging-migrations:/migrations
-    networks:
-      - pool-site-staging-internal
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
-
 volumes:
   pool-site-staging-db-data:
-  pool-site-staging-migrations:
 
 networks:
   chauffagistes-net:

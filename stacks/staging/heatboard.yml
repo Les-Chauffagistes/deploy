@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:sha-13f5f10
+    image: 10.10.0.3:5000/heatboard:sha-6835c5b
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
@@ -29,17 +29,12 @@ services:
         target: heatboard_discord_client_secret
       - source: heatboard_staging_nextauth_secret
         target: heatboard_nextauth_secret
-    volumes:
-      - heatboard-staging-migrations:/migrations
     networks:
       - chauffagistes-net
       - traefik-public
       - heatboard-staging-internal
     deploy:
       replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
       update_config:
         order: start-first
         monitor: 60s
@@ -102,32 +97,8 @@ services:
           cpus: "0.5"
           memory: 256M
 
-  migrator:
-    image: 10.10.0.3:5000/heatboard-migrator:sha-13f5f10
-    environment:
-      DB_USER: postgres
-      DB_HOST: db
-      DB_NAME: chauffagistes
-    secrets:
-      - source: heatboard_staging_db_password
-        target: db_password
-    volumes:
-      - heatboard-staging-migrations:/migrations
-    networks:
-      - heatboard-staging-internal
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
-
 volumes:
   heatboard-staging-db-data:
-  heatboard-staging-migrations:
 
 networks:
   chauffagistes-net:
