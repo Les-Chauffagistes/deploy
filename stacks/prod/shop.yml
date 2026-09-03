@@ -1,0 +1,126 @@
+services:
+  app:
+    image: 10.10.0.3:5000/shop:1.0.0
+    environment:
+      NODE_ENV: production
+      DB_USER: shop
+      DB_NAME: shop
+      DB_HOST: shop-prod_db
+      HOSTNAME: "0.0.0.0"
+      BASE_URL: shop.chauffagistes-btc.fr
+      AUTH_URL: https://auth.chauffagistes-btc.fr
+      AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
+      ADMIN_USER_IDS: 90, 92, 88, 271, 272
+    secrets:
+      - source: shop_prod_db_password
+        target: db_password
+      - source: auth_prod_jwt_secret
+        target: jwt_secret
+    volumes:
+      - shop-prod-migrations:/migrations  # volume partagé avec migrator
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - shop-prod-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.shop-prod.rule=Host(`shop.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.shop-prod.entrypoints=websecure"
+        - "traefik.http.routers.shop-prod.tls.certresolver=letsencrypt"
+        - "traefik.http.services.shop-prod.loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: shop
+      POSTGRES_USER: shop
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: shop_prod_db_password
+        target: db_password
+    volumes:
+      - shop-prod-db-data:/var/lib/postgresql/data
+    networks:
+      - shop-prod-internal
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  migrator:
+    image: 10.10.0.3:5000/shop-migrator:1.0.0
+    environment:
+      DB_USER: shop
+      DB_HOST: shop-prod_db
+      DB_NAME: shop
+    secrets:
+      - source: shop_prod_db_password
+        target: db_password
+    volumes:
+      - shop-prod-migrations:/migrations
+    networks:
+      - shop-prod-internal
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+
+volumes:
+  shop-prod-db-data:
+  shop-prod-migrations:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  shop-prod-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  shop_prod_db_password:
+    external: true
+  auth_prod_jwt_secret:
+    external: true
