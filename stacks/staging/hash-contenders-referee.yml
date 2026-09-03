@@ -22,8 +22,11 @@ services:
       - referee-staging-internal
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
       update_config:
-        order: start-first
+        order: stop-first
         monitor: 60s
         failure_action: rollback
       rollback_config:
