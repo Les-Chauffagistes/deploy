@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/shop:sha-4a2fa20
+    image: 10.10.0.3:5000/shop:sha-2986530
     environment:
       NODE_ENV: staging
       DB_USER: shop
@@ -28,7 +28,7 @@ services:
         constraints:
           - node.labels.chauffagistes.host == hugo
       update_config:
-        order: stop-first
+        order: start-first
         monitor: 60s
         failure_action: rollback
       rollback_config:
@@ -84,7 +84,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/shop-migrator:sha-4a2fa20
+    image: 10.10.0.3:5000/shop-migrator:sha-2986530
     environment:
       DB_USER: shop
       DB_HOST: shop-staging_db
