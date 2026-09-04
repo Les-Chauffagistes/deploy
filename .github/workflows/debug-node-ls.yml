@@ -1,8 +1,0 @@
-name: Debug — Node ls
-on:
-  workflow_dispatch:
-jobs:
-  ls:
-    runs-on: [self-hosted, manager]
-    steps:
-      - run: docker node ls
