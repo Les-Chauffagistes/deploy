@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/pool-site:1.0.0
+    image: 10.10.0.3:5000/pool-site:1.1.0
     environment:
       NODE_ENV: production
       DB_USER: pool_site
