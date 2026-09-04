@@ -103,7 +103,7 @@ services:
           memory: 256M
 
   migrator:
-    image: 10.10.0.3:5000/heatboard-migrator:1.1.0
+    image: 10.10.0.3:5000/heatboard-migrator:1.1.1
     environment:
       DB_USER: postgres
       DB_HOST: db
