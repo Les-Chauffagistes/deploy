@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:1.1.2
+    image: 10.10.0.3:5000/heatboard:1.1.4
     environment:
       NODE_ENV: production
       HOSTNAME: "0.0.0.0"
@@ -29,8 +29,6 @@ services:
         target: heatboard_discord_client_secret
       - source: heatboard_prod_nextauth_secret
         target: heatboard_nextauth_secret
-    volumes:
-      - heatboard-migrations:/migrations
     networks:
       - chauffagistes-net
       - traefik-public
@@ -102,32 +100,8 @@ services:
           cpus: "0.5"
           memory: 256M
 
-  migrator:
-    image: 10.10.0.3:5000/heatboard-migrator:1.1.2
-    environment:
-      DB_USER: postgres
-      DB_HOST: db
-      DB_NAME: chauffagistes
-    secrets:
-      - source: heatboard_prod_db_password
-        target: db_password
-    volumes:
-      - heatboard-migrations:/migrations
-    networks:
-      - heatboard-internal
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == itrider
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
-
 volumes:
   heatboard-db-data:
-  heatboard-migrations:
 
 networks:
   chauffagistes-net:
