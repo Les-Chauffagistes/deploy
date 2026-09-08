@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/shop:sha-2986530
+    image: 10.10.0.3:5000/shop:sha-1d69ac0
     environment:
       NODE_ENV: staging
       DB_USER: shop
@@ -82,29 +82,6 @@ services:
         limits:
           cpus: "0.5"
           memory: 256M
-
-  migrator:
-    image: 10.10.0.3:5000/shop-migrator:sha-2986530
-    environment:
-      DB_USER: shop
-      DB_HOST: shop-staging_db
-      DB_NAME: shop
-    secrets:
-      - source: shop_staging_db_password
-        target: db_password
-    volumes:
-      - shop-staging-migrations:/migrations
-    networks:
-      - shop-staging-internal
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
 
 volumes:
   shop-staging-db-data:
