@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   app:
-    image: 10.10.0.3:5000/auth-service-front:1.0.0
+    image: 10.10.0.3:5000/auth-service-front:1.1.1
     environment:
       AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
       BASE_URL: https://auth.chauffagistes-btc.fr
