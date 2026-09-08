@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/hash-contenders:sha-b275952
+    image: 10.10.0.3:5000/hash-contenders:sha-f25aff5
     environment:
       HOSTNAME: 0.0.0.0
       API_URL: https://api.contenders.staging.chauffagistes-btc.fr
