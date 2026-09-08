@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/hash-contenders:sha-49ba2ea
+    image: 10.10.0.3:5000/hash-contenders:sha-b275952
     environment:
       HOSTNAME: 0.0.0.0
       API_URL: https://api.contenders.staging.chauffagistes-btc.fr
@@ -23,8 +23,6 @@ services:
       - source: contenders_staging_jwt_secret
         target: jwt_secret
       - source: turnstile_secret_key
-    volumes:
-      - contenders-staging-migrations:/migrations
     networks:
       - chauffagistes-net
       - traefik-public
@@ -54,29 +52,6 @@ services:
         - "traefik.http.routers.contenders-staging.entrypoints=websecure"
         - "traefik.http.routers.contenders-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
-
-  migrator:
-    image: 10.10.0.3:5000/hash-contenders-migrator:sha-49ba2ea
-    environment:
-      DB_HOST: hash-contenders-staging_db
-      DB_USER: postgres
-      DB_NAME: chauffagistes
-    secrets:
-      - source: contenders_staging_db_password
-        target: db_password
-    volumes:
-      - contenders-staging-migrations:/migrations
-    networks:
-      - contenders-staging-internal
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
 
   db:
     image: postgres:16-alpine
@@ -121,7 +96,6 @@ services:
 
 volumes:
   contenders-staging-db-data:
-  contenders-staging-migrations:
 
 networks:
   chauffagistes-net:
