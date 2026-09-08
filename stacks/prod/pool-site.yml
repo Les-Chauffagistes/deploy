@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/pool-site:1.1.1
+    image: 10.10.0.3:5000/pool-site:1.1.2
     environment:
       NODE_ENV: production
       DB_USER: pool_site
@@ -10,8 +10,6 @@ services:
     secrets:
       - source: pool_site_prod_db_password
         target: db_password
-    volumes:
-      - pool-site-migrations:/migrations  # volume partagé avec migrator
     networks:
       - chauffagistes-net
       - traefik-public
@@ -77,32 +75,8 @@ services:
           cpus: "0.5"
           memory: 256M
 
-  migrator:
-    image: 10.10.0.3:5000/pool-site-migrator:1.1.0
-    environment:
-      DB_USER: pool_site
-      DB_HOST: pool-site-prod_db
-      DB_NAME: pool_site
-    secrets:
-      - source: pool_site_prod_db_password
-        target: db_password
-    volumes:
-      - pool-site-migrations:/migrations
-    networks:
-      - pool-site-internal
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == itrider
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 5
-
 volumes:
   pool-site-db-data:
-  pool-site-migrations:
 
 networks:
   chauffagistes-net:
