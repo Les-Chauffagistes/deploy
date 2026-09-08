@@ -16,8 +16,6 @@ services:
         target: db_password
       - source: auth_staging_jwt_secret
         target: jwt_secret
-    volumes:
-      - shop-staging-migrations:/migrations  # volume partagé avec migrator
     networks:
       - chauffagistes-net
       - traefik-public
@@ -85,7 +83,6 @@ services:
 
 volumes:
   shop-staging-db-data:
-  shop-staging-migrations:
 
 networks:
   chauffagistes-net:
