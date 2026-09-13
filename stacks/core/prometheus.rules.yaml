@@ -26,7 +26,8 @@ groups:
       - alert: ContainerMemoryNearLimit
         expr: |
           container_memory_usage_bytes{container_label_com_docker_swarm_service_name!=""}
-            / on(id) container_spec_memory_limit_bytes{container_label_com_docker_swarm_service_name!=""} > 0.9
+            / on(id) group_left(container_label_com_docker_swarm_service_name)
+            (container_spec_memory_limit_bytes{container_label_com_docker_swarm_service_name!=""} > 0) > 0.9
         for: 5m
         labels:
           severity: warning
