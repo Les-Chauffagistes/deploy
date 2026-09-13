@@ -38,6 +38,11 @@ configs:
     file: ./prometheus.config.yaml
   prometheus_rules:
     file: ./prometheus.rules.yaml
+    # Les Docker configs sont immuables (contenu figé après création) : dès
+    # que prometheus.rules.yaml change, il faut bumper ce nom pour que Swarm
+    # crée un nouvel objet plutôt que d'essayer (et échouer) à mettre à jour
+    # le contenu de l'ancien.
+    name: prometheus_rules_v2
 
 volumes:
   prometheus-data:
