@@ -1,6 +1,11 @@
 services:
   prometheus:
     image: prom/prometheus:v2.55.1
+    group_add:
+      # GID du groupe "docker" sur vps-ec31eed6 : le user nobody de l'image
+      # n'y est pas par défaut, donc il n'a pas la permission de lire le
+      # socket monté ci-dessous (nécessaire pour dockerswarm_sd_configs).
+      - "104"
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
