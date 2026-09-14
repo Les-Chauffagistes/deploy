@@ -29,7 +29,7 @@ services:
       resources:
         limits:
           cpus: "1"
-          memory: 512M
+          memory: 1G
       restart_policy:
         condition: on-failure
 
