@@ -24,8 +24,14 @@ groups:
   - name: swarm-resources
     rules:
       - alert: ContainerMemoryNearLimit
+        # container_memory_working_set_bytes (pas usage_bytes) : usage_bytes inclut le
+        # cache page du kernel (binaires mmap'és, .so, .pyc — réclamable sous pression
+        # sans tuer le process), ce qui déclenchait de faux positifs sur des services
+        # comme coins-service (moteur Prisma) alors que le working set réel restait
+        # confortable. working_set_bytes = ce que Kubernetes utilise aussi pour juger
+        # la pression mémoire réelle avant un OOM-kill.
         expr: |
-          container_memory_usage_bytes{container_label_com_docker_swarm_service_name!=""}
+          container_memory_working_set_bytes{container_label_com_docker_swarm_service_name!=""}
             / on(id) group_left(container_label_com_docker_swarm_service_name)
             (container_spec_memory_limit_bytes{container_label_com_docker_swarm_service_name!=""} > 0) > 0.9
         for: 5m
@@ -33,7 +39,7 @@ groups:
           severity: warning
         annotations:
           summary: "Mémoire proche de la limite : {{ $labels.container_label_com_docker_swarm_service_name }}"
-          description: "{{ $labels.container_label_com_docker_swarm_service_name }} utilise plus de 90% de sa limite mémoire depuis 5 minutes — risque d'OOM-kill imminent."
+          description: "{{ $labels.container_label_com_docker_swarm_service_name }} utilise plus de 90% de sa limite mémoire (working set) depuis 5 minutes — risque d'OOM-kill imminent."
 
       - alert: NodeDiskSpaceLow
         expr: |
