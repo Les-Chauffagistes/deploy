@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:sha-da2672f
+    image: 10.10.0.3:5000/heatboard:sha-c9aca55
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
