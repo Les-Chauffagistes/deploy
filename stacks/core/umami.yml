@@ -1,0 +1,90 @@
+services:
+  umami:
+    image: docker.umami.is/umami-software/umami:postgresql-latest
+    # L'image umami ne lit que DATABASE_URL/APP_SECRET en env brut (pas de
+    # variante _FILE comme postgres) : on les construit ici depuis les secrets
+    # Docker avant d'exec le script de démarrage d'origine. L'ENTRYPOINT de
+    # l'image (docker-entrypoint.sh) reste en place, seul le CMD est remplacé.
+    command: ["sh", "-c", "export DATABASE_URL=\"postgresql://umami:$(cat /run/secrets/db_password)@db:5432/umami\" APP_SECRET=\"$(cat /run/secrets/app_secret)\" && exec sh scripts/start-docker.sh"]
+    environment:
+      DATABASE_TYPE: postgresql
+    secrets:
+      - source: core_umami_db_password
+        target: db_password
+      - source: core_umami_app_secret
+        target: app_secret
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - umami-internal
+    deploy:
+      replicas: 1
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.umami.rule=Host(`umami.${DOMAIN}`)"
+        - "traefik.http.routers.umami.entrypoints=websecure"
+        - "traefik.http.routers.umami.tls.certresolver=letsencrypt"
+        - "traefik.http.services.umami.loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - source: core_umami_db_password
+        target: db_password
+    volumes:
+      - umami-db-data:/var/lib/postgresql/data
+    networks:
+      - umami-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U umami"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+volumes:
+  umami-db-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  umami-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  core_umami_db_password:
+    external: true
+  core_umami_app_secret:
+    external: true
