@@ -5,7 +5,7 @@ services:
     # variante _FILE comme postgres) : on les construit ici depuis les secrets
     # Docker avant d'exec le script de démarrage d'origine. L'ENTRYPOINT de
     # l'image (docker-entrypoint.sh) reste en place, seul le CMD est remplacé.
-    command: ["sh", "-c", "export DATABASE_URL=\"postgresql://umami:$(cat /run/secrets/db_password)@db:5432/umami\" APP_SECRET=\"$(cat /run/secrets/app_secret)\" && exec sh scripts/start-docker.sh"]
+    command: ["sh", "-c", "export DATABASE_URL=\"postgresql://umami:$$(cat /run/secrets/db_password)@db:5432/umami\" APP_SECRET=\"$$(cat /run/secrets/app_secret)\" && exec sh scripts/start-docker.sh"]
     environment:
       DATABASE_TYPE: postgresql
     secrets:
