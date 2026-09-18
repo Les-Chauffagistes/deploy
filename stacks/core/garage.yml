@@ -26,8 +26,10 @@ services:
     secrets:
       - source: core_garage_rpc_secret
         target: garage_rpc_secret
+        mode: 0400
       - source: core_garage_admin_token
         target: garage_admin_token
+        mode: 0400
     volumes:
       - garage-meta:/var/lib/garage/meta
       - garage-data:/var/lib/garage/data
