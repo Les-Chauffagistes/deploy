@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/hash-contenders-referee:sha-c363461
+    image: 10.10.0.3:5000/hash-contenders-referee:sha-f11c5d9
     environment:
       SERVER_PORT: "8095"
       DB_USER: postgres
@@ -9,6 +9,7 @@ services:
       API_URL: wss://shares-ws.chauffagistes-btc.fr/ws
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
       FRONTEND_URL: https://contenders.staging.chauffagistes-btc.fr
+      POOL_API_URL: https://chauffagistes-pool.fr:3000
     secrets:
       - source: referee_staging_db_password
         target: db_password
