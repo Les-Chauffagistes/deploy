@@ -13,7 +13,9 @@ groups:
           description: "Le service Swarm {{ $labels.container_label_com_docker_swarm_service_name }} sur {{ $labels.instance }} a redémarré plus de 2 fois en 10 minutes."
 
       - alert: ServiceReplicasDown
-        expr: up{job=~"node-exporter|cadvisor|traefik"} == 0
+        # swarm-services couvre tout service opt-in via les labels prometheus.scrape/port
+        # (voir prometheus.config.yaml) — Garage y compris.
+        expr: up{job=~"node-exporter|cadvisor|traefik|swarm-services"} == 0
         for: 2m
         labels:
           severity: critical
@@ -50,3 +52,17 @@ groups:
         annotations:
           summary: "Espace disque faible sur {{ $labels.node }}"
           description: "Moins de 10% d'espace disque restant sur {{ $labels.node }}."
+
+      - alert: GarageDiskSpaceLow
+        # garage_local_disk_avail/total : espace disque réel restant sous les
+        # volumes data/meta, pas la capacité déclarée au layout (que Garage ne
+        # fait pas respecter comme un quota dur) — c'est ce qui compte vraiment
+        # pour anticiper un disque plein sur la cible de sauvegarde.
+        expr: |
+          garage_local_disk_avail / garage_local_disk_total < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Espace disque Garage faible ({{ $labels.volume }})"
+          description: "Moins de 10% d'espace disque restant sur le volume {{ $labels.volume }} de Garage — les sauvegardes risquent d'échouer."

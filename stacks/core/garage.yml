@@ -49,6 +49,13 @@ services:
         limits:
           cpus: "1"
           memory: 1G
+      labels:
+        # Scrapé via l'opt-in générique "swarm-services" (voir prometheus.config.yaml).
+        # metrics_token volontairement non défini dans garage.config.toml : /metrics
+        # reste donc non authentifié, comme node-exporter/cadvisor — protégé par le
+        # fait que chauffagistes-net n'est joignable que depuis le swarm.
+        - "prometheus.scrape=true"
+        - "prometheus.port=3903"
 
 configs:
   garage_config:
