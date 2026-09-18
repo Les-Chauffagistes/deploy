@@ -100,11 +100,13 @@ docker exec -i <nouveau_container_db> psql -U MY_SERVICE MY_SERVICE < backup.sql
 Diffère des autres templates sur trois points :
 
 - **Prérequis** : le cluster etcd partagé de l'environnement doit déjà être déployé
-  (`stacks/staging/etcd.yml` / `stacks/prod/etcd.yml`, stacks `etcd-staging` / `etcd-prod`) —
+  (`stacks/staging/etcd-dcs.yml` / `stacks/prod/etcd-dcs.yml`, stacks `etcd-dcs-staging` / `etcd-dcs-prod`) —
   c'est le DCS (Distributed Consensus Store) que Patroni utilise pour élire le primaire.
   Un seul etcd pour tous les services HA d'un environnement, pas un par service.
-- **Fichier en plus à copier** : `_templates/with-db-ha-haproxy.cfg` → `stacks/<env>/MY-SERVICE-haproxy.cfg`
-  (contenu générique, pas de placeholder à remplacer dedans). C'est la config Swarm référencée par le
+- **Fichier en plus à copier** : `_templates/with-db-ha-haproxy.staging.cfg` / `.prod.cfg` →
+  `stacks/<env>/MY-SERVICE-haproxy.cfg`, avec le remplacement `MY-SERVICE` comme pour le stack file
+  (contrairement aux autres fichiers `.cfg` de ce repo, celui-ci référence `db1`/`db2` par leur nom
+  qualifié inter-stack, donc il a besoin du nom du service). C'est la config Swarm référencée par le
   service `haproxy` du stack file.
 - **Secret en plus à créer** : en plus de `db_password` et `api_key`, il faut
   `MY_SERVICE_<env>_db_replication_password` (mot de passe du rôle de réplication Postgres interne,

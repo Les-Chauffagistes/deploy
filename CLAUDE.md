@@ -125,8 +125,8 @@ Patroni a besoin d'un DCS (Distributed Consensus Store) pour élire le primaire.
 cluster etcd à 3 membres par environnement**, partagé par tous les services HA (namespacé par le
 `scope` Patroni de chacun) — pas un DCS dédié par service :
 
-- `stacks/staging/etcd.yml` → stack `etcd-staging`
-- `stacks/prod/etcd.yml` → stack `etcd-prod`
+- `stacks/staging/etcd-dcs.yml` → stack `etcd-dcs-staging`
+- `stacks/prod/etcd-dcs.yml` → stack `etcd-dcs-prod`
 
 3 membres, un par nœud physique (`hugo`, `vps`, `itrider`), pour garder un quorum même si un nœud
 tombe. etcd est volontairement sur `chauffagistes-net` (seule exception à la règle "la db n'est jamais
@@ -150,6 +150,30 @@ par la CI.
   `alertmanager-discord` ci-dessous, un entrypoint `sh -c` exporte `PATRONI_SUPERUSER_PASSWORD` /
   `PATRONI_REPLICATION_PASSWORD` depuis les secrets avant d'exec `/patroni_entrypoint.sh`. Aucun mot
   de passe n'apparaît en clair dans `PATRONI_CONFIGURATION`.
+
+### Piège DNS Swarm — toujours le nom qualifié entre pairs multi-réseaux
+
+Constaté en déployant `etcd-dcs` : un service Swarm attaché à **plusieurs réseaux** (ici
+`chauffagistes-net` + un réseau interne) n'a pas une résolution DNS fiable de son nom court
+(`etcd1`) pour les autres conteneurs qui le contactent — échec permanent (`no such host` /
+`server misbehaving`), alors que la connectivité TCP est saine. Le nom qualifié inter-stack
+(`<stack>_<service>`) résout de façon fiable quel que soit le nombre de réseaux. **Toute
+communication entre pairs d'un service multi-réseaux doit donc utiliser le nom qualifié**, jamais
+le nom court — c'est pour ça que `etcd-dcs.yml` (`ETCD_INITIAL_CLUSTER`) et `with-db-ha-haproxy.*.cfg`
+(pour joindre `db1`/`db2`) s'y conforment.
+
+Autre piège : le cache DNS/gossip Swarm peut rester bloqué en NXDOMAIN sur un nom de stack
+particulier après de nombreux cycles `docker stack rm`/`deploy` de debug sous le même nom — un
+nom jamais utilisé résout instantanément, l'ancien reste cassé indéfiniment. Se manifeste
+indépendamment d'un problème de volumes (voir ci-dessous) ; le correctif qui a marché est de
+renommer le stack (`etcd.yml` → `etcd-dcs.yml`), pas de redémarrer `dockerd` sur les nœuds — à
+éviter de toute façon sur `itrider`, qui héberge des db de prod.
+
+Enfin : les données etcd/Patroni vivent sur des volumes Docker nommés qui **survivent** à
+`docker stack rm` — un nœud qui a bootstrappé une fois avec une mauvaise config (noms courts,
+etc.) garde cet état sur disque et l'utilise en priorité sur `ETCD_INITIAL_CLUSTER` à chaque
+redémarrage, même après correction du stack file. Si un cluster etcd/Patroni ne convergence
+jamais après un fix de config, vérifier l'état des volumes avant de chercher ailleurs.
 
 Avant tout passage en prod d'un service converti à ce template : tester une vraie bascule (arrêter le
 nœud qui porte le primaire, vérifier que `haproxy` reroute automatiquement et que l'app reste up).

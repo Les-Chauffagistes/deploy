@@ -3,7 +3,7 @@
 #
 # 2 nœuds Patroni (Postgres) sur des nœuds physiques distincts + HAProxy
 # devant, qui route toujours vers le primaire actuel. DCS = cluster etcd
-# partagé de l'environnement (stacks/prod/etcd.yml) — pas de DCS dédié
+# partagé de l'environnement (stacks/prod/etcd-dcs.yml) — pas de DCS dédié
 # par service.
 #
 # À utiliser à la place de with-db.prod.yml quand l'indisponibilité de
@@ -11,11 +11,13 @@
 # with-db.prod.yml (plus simple, un seul Postgres).
 #
 # Remplacer partout MY_SERVICE (snake_case) et MY-SERVICE (kebab-case),
-# comme pour les autres templates. Copier aussi with-db-ha-haproxy.cfg
-# à côté du fichier de stack, renommé en MY-SERVICE-haproxy.cfg.
+# comme pour les autres templates. Copier aussi with-db-ha-haproxy.prod.cfg
+# à côté du fichier de stack, renommé en MY-SERVICE-haproxy.cfg (et y
+# remplacer MY-SERVICE comme dans ce fichier — voir le commentaire en tête
+# du .cfg pour pourquoi ce fichier-là n'est plus générique).
 #
 # db1/db2 sont sur chauffagistes-net UNIQUEMENT pour atteindre le cluster
-# etcd partagé (stacks/prod/etcd.yml) — le trafic applicatif ne
+# etcd partagé (stacks/prod/etcd-dcs.yml) — le trafic applicatif ne
 # l'emprunte pas, il reste confiné à MY-SERVICE-prod-internal via
 # haproxy. Ce n'est donc pas une entorse à "la db n'est jamais sur
 # chauffagistes-net" au sens habituel (pas de données métier exposées),
@@ -30,7 +32,7 @@
 x-patroni-common: &patroni-common
   image: timescale/timescaledb-ha:pg17
   networks:
-    - chauffagistes-net              # atteindre etcd-prod_etcdN, rien d'autre
+    - chauffagistes-net              # atteindre etcd-dcs-prod_dcsN, rien d'autre
     - MY-SERVICE-prod-internal
   secrets:
     - source: MY_SERVICE_prod_db_password
@@ -115,7 +117,7 @@ services:
           listen: 0.0.0.0:8008
           connect_address: db1:8008
         etcd3:
-          hosts: etcd-prod_etcd1:2379,etcd-prod_etcd2:2379,etcd-prod_etcd3:2379
+          hosts: etcd-dcs-prod_dcs1:2379,etcd-dcs-prod_dcs2:2379,etcd-dcs-prod_dcs3:2379
         bootstrap:
           dcs:
             ttl: 30
@@ -163,7 +165,7 @@ services:
           listen: 0.0.0.0:8008
           connect_address: db2:8008
         etcd3:
-          hosts: etcd-prod_etcd1:2379,etcd-prod_etcd2:2379,etcd-prod_etcd3:2379
+          hosts: etcd-dcs-prod_dcs1:2379,etcd-dcs-prod_dcs2:2379,etcd-dcs-prod_dcs3:2379
         bootstrap:
           dcs:
             ttl: 30

@@ -1,0 +1,128 @@
+# Cluster etcd partagé — DCS (Distributed Consensus Store) pour tous les
+# clusters Patroni (Postgres HA) de l'environnement staging. Un seul etcd
+# pour tous les microservices, namespacé par le `scope` Patroni de chacun
+# (voir _templates/with-db-ha.staging.yml).
+#
+# 3 membres, un par nœud physique, pour garder un quorum même si un nœud
+# tombe. Sur chauffagistes-net : exception délibérée à la règle "la db
+# n'est jamais sur chauffagistes-net" (CLAUDE.md) — etcd ne stocke aucune
+# donnée métier, seulement l'état d'élection des clusters Patroni, et doit
+# être joignable depuis n'importe quel autre stack.
+#
+# IMPORTANT : ETCD_INITIAL_CLUSTER / ETCD_INITIAL_ADVERTISE_PEER_URLS /
+# ETCD_ADVERTISE_CLIENT_URLS utilisent tous le nom qualifié inter-stack
+# (etcd-dcs-staging_dcsN), PAS le nom court (dcs1). Constaté en staging : dès
+# qu'un service Swarm est attaché à plusieurs réseaux (ici chauffagistes-net
+# + un éventuel réseau dédié), la résolution DNS du nom court entre pairs
+# devient perpétuellement "no such host"/"server misbehaving", quelle que
+# soit la connectivité TCP réelle (confirmée bonne) — un vrai cluster à 3
+# membres ne s'est jamais formé tant que le nom court était utilisé. Le nom
+# qualifié, lui, résout de façon fiable même en multi-réseaux (c'est
+# d'ailleurs déjà le mécanisme utilisé pour tout accès inter-stack ailleurs
+# dans ce repo). Ne PAS revenir aux noms courts sans revalider ce point.
+#
+# Nom du fichier (etcd-dcs, pas etcd) : lors du déploiement initial, le nom
+# de stack "etcd-staging" a fini avec un enregistrement DNS Swarm bloqué en
+# NXDOMAIN après une dizaine de cycles create/destroy de debug — un nom de
+# service jamais utilisé résolvait instantanément, "etcd-staging_etcdN" ne
+# résolvait jamais, même des heures après et volumes vidés. Renommer le
+# stack a suffi à repartir sur un état DNS propre, sans toucher aux nœuds
+# (dont un héberge des db de prod — redémarrer dockerd dessus était exclu).
+# Ne pas renommer ce fichier en etcd.yml sans avoir un plan si ça se
+# reproduit.
+
+x-etcd-common: &etcd-common
+  image: gcr.io/etcd-development/etcd:v3.6.6
+  networks:
+    - chauffagistes-net
+  healthcheck:
+    # start_period généreux : au premier bootstrap, les 3 membres doivent se
+    # voir et élire un leader avant que endpoint health ne réponde 200.
+    test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+    start_period: 90s
+
+x-etcd-env: &etcd-env
+  ETCDCTL_API: "3"
+  ETCD_INITIAL_CLUSTER: dcs1=http://etcd-dcs-staging_dcs1:2380,dcs2=http://etcd-dcs-staging_dcs2:2380,dcs3=http://etcd-dcs-staging_dcs3:2380
+  ETCD_INITIAL_CLUSTER_STATE: new
+  ETCD_INITIAL_CLUSTER_TOKEN: etcd-dcs-staging-cluster
+  ETCD_ENABLE_V2: "false"
+  ETCD_DATA_DIR: /etcd-data
+  ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+  ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+
+x-etcd-deploy: &etcd-deploy
+  replicas: 1
+  # dnsrr (pas le VIP par défaut) : constaté en staging que le VIP du
+  # service (IPVS) restait injoignable en ping ET en TCP alors que l'IP du
+  # conteneur, elle, répondait normalement — DNS et VIP cassés ensemble,
+  # connectivité réseau brute intacte. dnsrr fait résoudre le nom
+  # directement vers l'IP de la tâche, sans passer par le VIP.
+  endpoint_mode: dnsrr
+  update_config:
+    order: stop-first
+  restart_policy:
+    condition: any
+    delay: 5s
+  resources:
+    limits:
+      cpus: "0.5"
+      memory: 512M
+
+services:
+  dcs1:
+    <<: *etcd-common
+    environment:
+      <<: *etcd-env
+      ETCD_NAME: dcs1
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd-dcs-staging_dcs1:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-dcs-staging_dcs1:2379
+    volumes:
+      - etcd-dcs-staging-1-data:/etcd-data
+    deploy:
+      <<: *etcd-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+
+  dcs2:
+    <<: *etcd-common
+    environment:
+      <<: *etcd-env
+      ETCD_NAME: dcs2
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd-dcs-staging_dcs2:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-dcs-staging_dcs2:2379
+    volumes:
+      - etcd-dcs-staging-2-data:/etcd-data
+    deploy:
+      <<: *etcd-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == vps
+
+  dcs3:
+    <<: *etcd-common
+    environment:
+      <<: *etcd-env
+      ETCD_NAME: dcs3
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd-dcs-staging_dcs3:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-dcs-staging_dcs3:2379
+    volumes:
+      - etcd-dcs-staging-3-data:/etcd-data
+    deploy:
+      <<: *etcd-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == itrider
+
+networks:
+  chauffagistes-net:
+    external: true
+
+volumes:
+  etcd-dcs-staging-1-data:
+  etcd-dcs-staging-2-data:
+  etcd-dcs-staging-3-data:
