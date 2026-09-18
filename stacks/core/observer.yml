@@ -24,6 +24,9 @@ services:
       - chauffagistes-net
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == vps
       update_config:
         order: start-first
         monitor: 60s

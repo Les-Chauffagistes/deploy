@@ -13,6 +13,9 @@ services:
       - chauffagistes-net
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == vps
       resources:
         limits:
           cpus: "0.2"
@@ -39,6 +42,9 @@ services:
       - chauffagistes-net
     deploy:
       replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == vps
       resources:
         limits:
           cpus: "0.1"
