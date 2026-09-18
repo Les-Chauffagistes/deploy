@@ -1,52 +1,22 @@
-# Cluster etcd partagé — DCS (Distributed Consensus Store) pour tous les
-# clusters Patroni (Postgres HA) de l'environnement staging. Un seul etcd
-# pour tous les microservices, namespacé par le `scope` Patroni de chacun
-# (voir _templates/with-db-ha.staging.yml).
+# Cluster etcd partagé : DCS de tous les clusters Patroni (Postgres HA) de
+# l'environnement, namespacé par le `scope` Patroni de chaque service (voir
+# _templates/with-db-ha.staging.yml). 3 membres, un par nœud physique, pour
+# garder le quorum si un nœud tombe.
 #
-# 3 membres, un par nœud physique, pour garder un quorum même si un nœud
-# tombe. Sur chauffagistes-net : exception délibérée à la règle "la db
-# n'est jamais sur chauffagistes-net" (CLAUDE.md) — etcd ne stocke aucune
-# donnée métier, seulement l'état d'élection des clusters Patroni, et doit
-# être joignable depuis n'importe quel autre stack.
-#
-# IMPORTANT : ETCD_INITIAL_CLUSTER / ETCD_INITIAL_ADVERTISE_PEER_URLS /
-# ETCD_ADVERTISE_CLIENT_URLS utilisent tous le nom qualifié inter-stack
-# (etcd-dcs-staging_dcsN), PAS le nom court (dcs1). Constaté en staging : dès
-# qu'un service Swarm est attaché à plusieurs réseaux (ici chauffagistes-net
-# + un éventuel réseau dédié), la résolution DNS du nom court entre pairs
-# devient perpétuellement "no such host"/"server misbehaving", quelle que
-# soit la connectivité TCP réelle (confirmée bonne) — un vrai cluster à 3
-# membres ne s'est jamais formé tant que le nom court était utilisé. Le nom
-# qualifié, lui, résout de façon fiable même en multi-réseaux (c'est
-# d'ailleurs déjà le mécanisme utilisé pour tout accès inter-stack ailleurs
-# dans ce repo). Ne PAS revenir aux noms courts sans revalider ce point.
-#
-# Nom du fichier (etcd-dcs, pas etcd) : lors du déploiement initial, le nom
-# de stack "etcd-staging" a fini avec un enregistrement DNS Swarm bloqué en
-# NXDOMAIN après une dizaine de cycles create/destroy de debug — un nom de
-# service jamais utilisé résolvait instantanément, "etcd-staging_etcdN" ne
-# résolvait jamais, même des heures après et volumes vidés. Renommer le
-# stack a suffi à repartir sur un état DNS propre, sans toucher aux nœuds
-# (dont un héberge des db de prod — redémarrer dockerd dessus était exclu).
-# Ne pas renommer ce fichier en etcd.yml sans avoir un plan si ça se
-# reproduit.
+# Sur chauffagistes-net pour être joignable depuis les autres stacks :
+# exception assumée à "la db n'est jamais sur chauffagistes-net", etcd ne
+# stocke aucune donnée métier.
 
 x-etcd-common: &etcd-common
   image: gcr.io/etcd-development/etcd:v3.6.6
   networks:
     - chauffagistes-net
-  # PAS de healthcheck Docker, volontairement. Swarm ne publie une tâche
-  # dans son DNS (et son VIP) qu'une fois son healthcheck "healthy". Or
-  # `etcdctl endpoint health` n'est healthy qu'avec un quorum, et le quorum
-  # exige que les pairs se résolvent en DNS : deadlock au bootstrap (NXDOMAIN
-  # sur les 3 noms, même en local sur le nœud), chaque tâche est tuée comme
-  # unhealthy au bout de ~4 min et le cycle recommence. Un check de pure
-  # liveness n'est pas faisable simplement (image distroless, ni curl ni
-  # wget pour /livez). La santé du cluster se surveille via Prometheus
-  # (etcd_server_has_leader), pas via Swarm.
+  # Pas de healthcheck : Swarm ne publie une tâche dans son DNS qu'une fois
+  # healthy, or etcd n'est healthy qu'avec un quorum, qui exige que les pairs
+  # se résolvent en DNS. Un healthcheck bloque donc le bootstrap (voir
+  # CLAUDE.md). Surveillance via Prometheus (etcd_server_has_leader).
 
 x-etcd-env: &etcd-env
-  ETCDCTL_API: "3"
   ETCD_INITIAL_CLUSTER: dcs1=http://etcd-dcs-staging_dcs1:2380,dcs2=http://etcd-dcs-staging_dcs2:2380,dcs3=http://etcd-dcs-staging_dcs3:2380
   ETCD_INITIAL_CLUSTER_STATE: new
   ETCD_INITIAL_CLUSTER_TOKEN: etcd-dcs-staging-cluster
@@ -57,11 +27,6 @@ x-etcd-env: &etcd-env
 
 x-etcd-deploy: &etcd-deploy
   replicas: 1
-  # dnsrr (pas le VIP par défaut) : constaté en staging que le VIP du
-  # service (IPVS) restait injoignable en ping ET en TCP alors que l'IP du
-  # conteneur, elle, répondait normalement — DNS et VIP cassés ensemble,
-  # connectivité réseau brute intacte. dnsrr fait résoudre le nom
-  # directement vers l'IP de la tâche, sans passer par le VIP.
   endpoint_mode: dnsrr
   update_config:
     order: stop-first

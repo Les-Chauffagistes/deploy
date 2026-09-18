@@ -1,50 +1,31 @@
 # ============================================================
 # TEMPLATE — Service avec PostgreSQL en haute disponibilité
 #
-# 2 nœuds Patroni (Postgres) sur des nœuds physiques distincts + HAProxy
-# devant, qui route toujours vers le primaire actuel. DCS = cluster etcd
-# partagé de l'environnement (stacks/prod/etcd-dcs.yml) — pas de DCS dédié
-# par service.
+# 2 nœuds Patroni sur des nœuds physiques distincts + HAProxy devant, qui
+# route toujours vers le primaire. DCS : cluster etcd partagé de
+# l'environnement (stacks/prod/etcd-dcs.yml), qui doit déjà tourner.
+# Préférer with-db.prod.yml si une coupure de la db pendant la panne d'un
+# nœud est acceptable.
 #
-# À utiliser à la place de with-db.prod.yml quand l'indisponibilité de
-# la db pendant la panne d'un nœud n'est pas acceptable. Sinon, préférer
-# with-db.prod.yml (plus simple, un seul Postgres).
+# Remplacer MY_SERVICE (snake_case) et MY-SERVICE (kebab-case), et copier
+# with-db-ha-haproxy.cfg à côté du stack file sous le nom
+# MY-SERVICE-haproxy.cfg (sans modification).
 #
-# Remplacer partout MY_SERVICE (snake_case) et MY-SERVICE (kebab-case),
-# comme pour les autres templates. Copier aussi with-db-ha-haproxy.prod.cfg
-# à côté du fichier de stack, renommé en MY-SERVICE-haproxy.cfg (et y
-# remplacer MY-SERVICE comme dans ce fichier — voir le commentaire en tête
-# du .cfg pour pourquoi ce fichier-là n'est plus générique).
-#
-# db1/db2 sont sur chauffagistes-net UNIQUEMENT pour atteindre le cluster
-# etcd partagé (stacks/prod/etcd-dcs.yml) — le trafic applicatif ne
-# l'emprunte pas, il reste confiné à MY-SERVICE-prod-internal via
-# haproxy. Ce n'est donc pas une entorse à "la db n'est jamais sur
-# chauffagistes-net" au sens habituel (pas de données métier exposées),
-# mais il faut en avoir conscience.
-#
-# Secrets à créer sur le manager, en plus de ceux déjà requis par
-# with-db.prod.yml (db_password réutilisé comme mot de passe superuser
-# Patroni ET credentials applicatifs, comme pour with-db.prod.yml) :
+# Secret en plus de ceux de with-db.prod.yml :
 #   printf "mot_de_passe_fort" | docker secret create MY_SERVICE_prod_db_replication_password -
 # ============================================================
 
 x-patroni-common: &patroni-common
   image: timescale/timescaledb-ha:pg17
   networks:
-    - chauffagistes-net              # atteindre etcd-dcs-prod_dcsN, rien d'autre
+    - chauffagistes-net              # uniquement pour joindre etcd-dcs-prod
     - MY-SERVICE-prod-internal
   secrets:
     - source: MY_SERVICE_prod_db_password
       target: superuser_password
     - source: MY_SERVICE_prod_db_replication_password
       target: replication_password
-  # L'image ne lit pas les secrets Docker nativement (pas de convention
-  # _FILE côté Patroni) : on exporte nous-mêmes les mots de passe avant
-  # d'exec le vrai entrypoint, comme pour alertmanager-discord (voir
-  # CLAUDE.md). Patroni fusionne PATRONI_SUPERUSER_PASSWORD /
-  # PATRONI_REPLICATION_PASSWORD par-dessus PATRONI_CONFIGURATION, donc
-  # aucun mot de passe n'apparaît en clair dans la config YAML ci-dessous.
+  # Patroni ne lit pas les secrets Docker : on les exporte avant l'entrypoint.
   entrypoint:
     - sh
     - -c
@@ -221,10 +202,7 @@ services:
           memory: 128M
 
 configs:
-  # Les configs Swarm sont immuables : tout changement de contenu de
-  # MY-SERVICE-haproxy.cfg nécessite un nouveau nom ici (incrémenter
-  # _v1 → _v2, comme pour grafana_datasources_v2 dans stacks/core).
-  # --prune nettoie l'ancien objet devenu orphelin.
+  # Configs Swarm immuables : incrémenter _vN à chaque changement du .cfg.
   MY_SERVICE_prod_haproxy_cfg_v1:
     file: ./MY-SERVICE-haproxy.cfg
 

@@ -113,70 +113,43 @@ Déclenché sur push `develop` (staging) et `main` (prod). Étapes :
 
 ## Haute disponibilité Postgres (Patroni + etcd)
 
-Par défaut (template `with-db`), la db d'un microservice est un unique `postgres:16-alpine` pinné
-sur un nœud : si ce nœud tombe, la db et ses données sont inaccessibles jusqu'à son retour. Pour les
-services qui ne peuvent pas se permettre ça, le template `with-db-ha` (voir `_templates/README.md`)
-déploie à la place un cluster Patroni à 2 nœuds Postgres + HAProxy devant, qui route toujours vers le
-primaire actuel.
+Le template `with-db` pinne une unique db sur un nœud : si le nœud tombe, la db est inaccessible
+jusqu'à son retour. Pour les services qui ne peuvent pas se le permettre, `with-db-ha` (voir
+`_templates/README.md`) déploie 2 nœuds Patroni + HAProxy, qui route toujours vers le primaire.
 
 ### DCS partagé (etcd)
 
-Patroni a besoin d'un DCS (Distributed Consensus Store) pour élire le primaire. On utilise **un seul
-cluster etcd à 3 membres par environnement**, partagé par tous les services HA (namespacé par le
-`scope` Patroni de chacun) — pas un DCS dédié par service :
+Un seul cluster etcd à 3 membres par environnement, partagé par tous les services HA (namespacé par
+le `scope` Patroni) : `stacks/<env>/etcd-dcs.yml` → stack `etcd-dcs-<env>`. Un membre par nœud
+physique (`hugo`, `vps`, `itrider`) pour garder le quorum si un nœud tombe. Sur `chauffagistes-net`
+pour être joignable depuis tous les stacks (etcd ne stocke aucune donnée métier).
 
-- `stacks/staging/etcd-dcs.yml` → stack `etcd-dcs-staging`
-- `stacks/prod/etcd-dcs.yml` → stack `etcd-dcs-prod`
-
-3 membres, un par nœud physique (`hugo`, `vps`, `itrider`), pour garder un quorum même si un nœud
-tombe. etcd est volontairement sur `chauffagistes-net` (seule exception à la règle "la db n'est jamais
-sur `chauffagistes-net`") car il doit être joignable depuis n'importe quel stack de service, et il ne
-stocke aucune donnée métier — seulement l'état d'élection des clusters Patroni.
-
-Le mode Raft interne de Patroni (pas d'etcd/Consul externe, DCS embarqué dans chaque nœud Postgres)
-a été écarté : il est marqué **beta/déprécié** par Patroni upstream. `reference.yaml` à la racine du
-repo est le spike qui a servi à valider Patroni avant ce choix — gardé pour référence, jamais déployé
-par la CI.
+Le mode Raft interne de Patroni a été écarté (beta/déprécié upstream). `reference.yaml` à la racine
+est le spike Compose qui a validé Patroni, jamais déployé par la CI.
 
 ### Pattern par service (template `with-db-ha`)
 
-- `db1`/`db2` : Patroni + `timescale/timescaledb-ha`, chacun pinné sur un nœud physique différent
-  (pas le même que l'app). Sur `<service>-<env>-internal` **et** `chauffagistes-net` (uniquement
-  pour atteindre etcd, pas pour le trafic applicatif).
-- `haproxy` : devant `db1`/`db2`, healthcheck sur l'API REST Patroni (`GET /primary`, 200 seulement
-  sur le primaire). Seul service HA sur `<service>-<env>-internal` que l'app doit connaître
-  (`DB_HOST: haproxy`).
-- L'image ne lit pas les secrets Docker nativement pour les mots de passe Patroni : même pattern que
-  `alertmanager-discord` ci-dessous, un entrypoint `sh -c` exporte `PATRONI_SUPERUSER_PASSWORD` /
-  `PATRONI_REPLICATION_PASSWORD` depuis les secrets avant d'exec `/patroni_entrypoint.sh`. Aucun mot
-  de passe n'apparaît en clair dans `PATRONI_CONFIGURATION`.
+- `db1`/`db2` : Patroni + `timescale/timescaledb-ha`, pinnés sur deux nœuds physiques différents.
+  Sur `<service>-<env>-internal` et `chauffagistes-net` (uniquement pour joindre etcd).
+- `haproxy` : check sur l'API REST Patroni (`GET /primary`, 200 seulement sur le primaire). C'est
+  le seul hôte db que l'app connaît (`DB_HOST: haproxy`).
+- Mots de passe Patroni exportés depuis les secrets Docker par un entrypoint `sh -c`, jamais en
+  clair dans `PATRONI_CONFIGURATION`.
 
-### Piège DNS Swarm — toujours le nom qualifié entre pairs multi-réseaux
+### Pièges Swarm
 
-Constaté en déployant `etcd-dcs` : un service Swarm attaché à **plusieurs réseaux** (ici
-`chauffagistes-net` + un réseau interne) n'a pas une résolution DNS fiable de son nom court
-(`etcd1`) pour les autres conteneurs qui le contactent — échec permanent (`no such host` /
-`server misbehaving`), alors que la connectivité TCP est saine. Le nom qualifié inter-stack
-(`<stack>_<service>`) résout de façon fiable quel que soit le nombre de réseaux. **Toute
-communication entre pairs d'un service multi-réseaux doit donc utiliser le nom qualifié**, jamais
-le nom court — c'est pour ça que `etcd-dcs.yml` (`ETCD_INITIAL_CLUSTER`) et `with-db-ha-haproxy.*.cfg`
-(pour joindre `db1`/`db2`) s'y conforment.
+- **Healthcheck et DNS** : Swarm ne publie une tâche dans son DNS (et son VIP) qu'une fois son
+  healthcheck `healthy`. Un service qui découvre ses pairs par DNS ne doit donc jamais avoir un
+  healthcheck qui dépend de ces pairs : c'est pour ça qu'etcd n'a pas de healthcheck (son `endpoint
+  health` exige un quorum, qui exige le DNS des pairs → deadlock au bootstrap, NXDOMAIN sur les 3
+  noms). Pour la même raison, HAProxy résout `db1`/`db2` en continu via le DNS Swarm
+  (`resolvers` + `init-addr none`) au lieu de le faire une seule fois au démarrage.
+- **Volumes** : les données etcd/Patroni survivent à `docker stack rm`. Un membre qui a bootstrappé
+  avec une mauvaise config réutilise cet état et ignore `ETCD_INITIAL_CLUSTER` : après un fix de
+  config qui ne converge pas, vider les volumes.
 
-Autre piège : le cache DNS/gossip Swarm peut rester bloqué en NXDOMAIN sur un nom de stack
-particulier après de nombreux cycles `docker stack rm`/`deploy` de debug sous le même nom — un
-nom jamais utilisé résout instantanément, l'ancien reste cassé indéfiniment. Se manifeste
-indépendamment d'un problème de volumes (voir ci-dessous) ; le correctif qui a marché est de
-renommer le stack (`etcd.yml` → `etcd-dcs.yml`), pas de redémarrer `dockerd` sur les nœuds — à
-éviter de toute façon sur `itrider`, qui héberge des db de prod.
-
-Enfin : les données etcd/Patroni vivent sur des volumes Docker nommés qui **survivent** à
-`docker stack rm` — un nœud qui a bootstrappé une fois avec une mauvaise config (noms courts,
-etc.) garde cet état sur disque et l'utilise en priorité sur `ETCD_INITIAL_CLUSTER` à chaque
-redémarrage, même après correction du stack file. Si un cluster etcd/Patroni ne convergence
-jamais après un fix de config, vérifier l'état des volumes avant de chercher ailleurs.
-
-Avant tout passage en prod d'un service converti à ce template : tester une vraie bascule (arrêter le
-nœud qui porte le primaire, vérifier que `haproxy` reroute automatiquement et que l'app reste up).
+Avant tout passage en prod d'un service sur ce template : tester une vraie bascule (arrêter le nœud
+qui porte le primaire, vérifier que `haproxy` reroute et que l'app reste up).
 
 ## Monitoring
 

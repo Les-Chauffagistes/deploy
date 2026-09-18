@@ -97,26 +97,17 @@ docker exec -i <nouveau_container_db> psql -U MY_SERVICE MY_SERVICE < backup.sql
 
 ## 6. Cas particulier : template `with-db-ha`
 
-Diffère des autres templates sur trois points :
-
-- **Prérequis** : le cluster etcd partagé de l'environnement doit déjà être déployé
-  (`stacks/staging/etcd-dcs.yml` / `stacks/prod/etcd-dcs.yml`, stacks `etcd-dcs-staging` / `etcd-dcs-prod`) —
-  c'est le DCS (Distributed Consensus Store) que Patroni utilise pour élire le primaire.
-  Un seul etcd pour tous les services HA d'un environnement, pas un par service.
-- **Fichier en plus à copier** : `_templates/with-db-ha-haproxy.staging.cfg` / `.prod.cfg` →
-  `stacks/<env>/MY-SERVICE-haproxy.cfg`, avec le remplacement `MY-SERVICE` comme pour le stack file
-  (contrairement aux autres fichiers `.cfg` de ce repo, celui-ci référence `db1`/`db2` par leur nom
-  qualifié inter-stack, donc il a besoin du nom du service). C'est la config Swarm référencée par le
-  service `haproxy` du stack file.
-- **Secret en plus à créer** : en plus de `db_password` et `api_key`, il faut
-  `MY_SERVICE_<env>_db_replication_password` (mot de passe du rôle de réplication Postgres interne,
+- **Prérequis** : le cluster etcd partagé de l'environnement doit tourner (stack `etcd-dcs-<env>`,
+  `stacks/<env>/etcd-dcs.yml`). C'est le DCS que Patroni utilise pour élire le primaire.
+- **Fichier en plus** : copier `_templates/with-db-ha-haproxy.cfg` en
+  `stacks/<env>/MY-SERVICE-haproxy.cfg`, sans modification (config du service `haproxy`).
+- **Secret en plus** : `MY_SERVICE_<env>_db_replication_password` (rôle de réplication Postgres,
   jamais utilisé par l'app).
-- `db1`/`db2` sont pinnés chacun sur un nœud physique différent (pas le même nœud que l'app, qui n'a
-  plus besoin d'être pinnée du tout — elle passe toujours par `haproxy`, qui route vers le primaire
-  du moment). Voir les commentaires en tête de `with-db-ha.staging.yml` pour le détail.
+- `db1`/`db2` sont pinnés sur deux nœuds physiques différents ; l'app n'a pas besoin d'être pinnée,
+  elle passe par `haproxy`.
 
 Avant tout passage en prod : tester une vraie bascule (arrêter le nœud qui porte le primaire, vérifier
-que `haproxy` reroute automatiquement vers l'autre nœud et que l'app reste disponible).
+que `haproxy` reroute et que l'app reste disponible).
 
 ---
 
