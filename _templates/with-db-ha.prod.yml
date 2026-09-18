@@ -1,0 +1,246 @@
+# ============================================================
+# TEMPLATE — Service avec PostgreSQL en haute disponibilité
+#
+# 2 nœuds Patroni (Postgres) sur des nœuds physiques distincts + HAProxy
+# devant, qui route toujours vers le primaire actuel. DCS = cluster etcd
+# partagé de l'environnement (stacks/prod/etcd.yml) — pas de DCS dédié
+# par service.
+#
+# À utiliser à la place de with-db.prod.yml quand l'indisponibilité de
+# la db pendant la panne d'un nœud n'est pas acceptable. Sinon, préférer
+# with-db.prod.yml (plus simple, un seul Postgres).
+#
+# Remplacer partout MY_SERVICE (snake_case) et MY-SERVICE (kebab-case),
+# comme pour les autres templates. Copier aussi with-db-ha-haproxy.cfg
+# à côté du fichier de stack, renommé en MY-SERVICE-haproxy.cfg.
+#
+# db1/db2 sont sur chauffagistes-net UNIQUEMENT pour atteindre le cluster
+# etcd partagé (stacks/prod/etcd.yml) — le trafic applicatif ne
+# l'emprunte pas, il reste confiné à MY-SERVICE-prod-internal via
+# haproxy. Ce n'est donc pas une entorse à "la db n'est jamais sur
+# chauffagistes-net" au sens habituel (pas de données métier exposées),
+# mais il faut en avoir conscience.
+#
+# Secrets à créer sur le manager, en plus de ceux déjà requis par
+# with-db.prod.yml (db_password réutilisé comme mot de passe superuser
+# Patroni ET credentials applicatifs, comme pour with-db.prod.yml) :
+#   printf "mot_de_passe_fort" | docker secret create MY_SERVICE_prod_db_replication_password -
+# ============================================================
+
+x-patroni-common: &patroni-common
+  image: timescale/timescaledb-ha:pg17
+  networks:
+    - chauffagistes-net              # atteindre etcd-prod_etcdN, rien d'autre
+    - MY-SERVICE-prod-internal
+  secrets:
+    - source: MY_SERVICE_prod_db_password
+      target: superuser_password
+    - source: MY_SERVICE_prod_db_replication_password
+      target: replication_password
+  # L'image ne lit pas les secrets Docker nativement (pas de convention
+  # _FILE côté Patroni) : on exporte nous-mêmes les mots de passe avant
+  # d'exec le vrai entrypoint, comme pour alertmanager-discord (voir
+  # CLAUDE.md). Patroni fusionne PATRONI_SUPERUSER_PASSWORD /
+  # PATRONI_REPLICATION_PASSWORD par-dessus PATRONI_CONFIGURATION, donc
+  # aucun mot de passe n'apparaît en clair dans la config YAML ci-dessous.
+  entrypoint:
+    - sh
+    - -c
+    - >-
+      export PATRONI_SUPERUSER_PASSWORD="$(cat /run/secrets/superuser_password)" &&
+      export PATRONI_REPLICATION_PASSWORD="$(cat /run/secrets/replication_password)" &&
+      exec /patroni_entrypoint.sh
+  healthcheck:
+    test: ["CMD-SHELL", "curl -sf http://localhost:8008/health"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 60s
+
+x-patroni-deploy: &patroni-deploy
+  replicas: 1
+  update_config:
+    order: stop-first
+  restart_policy:
+    condition: any
+    delay: 5s
+  resources:
+    limits:
+      cpus: "0.5"
+      memory: 512M
+
+services:
+  app:
+    image: 10.10.0.3:5000/MY-SERVICE:0.0.0  # tag semver obligatoire en prod
+    environment:
+      NODE_ENV: production
+      DB_USER: MY_SERVICE
+      DB_NAME: MY_SERVICE
+      DB_HOST: haproxy
+    secrets:
+      - source: MY_SERVICE_prod_db_password
+        target: db_password
+      - source: MY_SERVICE_prod_api_key
+        target: api_key
+    networks:
+      - chauffagistes-net
+      - MY-SERVICE-prod-internal
+    deploy:
+      replicas: 1
+      update_config:
+        order: stop-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+  db1:
+    <<: *patroni-common
+    hostname: db1
+    environment:
+      PATRONI_SUPERUSER_USERNAME: MY_SERVICE
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_CONFIGURATION: |
+        scope: MY_SERVICE-prod
+        name: db1
+        restapi:
+          listen: 0.0.0.0:8008
+          connect_address: db1:8008
+        etcd3:
+          hosts: etcd-prod_etcd1:2379,etcd-prod_etcd2:2379,etcd-prod_etcd3:2379
+        bootstrap:
+          dcs:
+            ttl: 30
+            loop_wait: 10
+            retry_timeout: 10
+            maximum_lag_on_failover: 1048576
+            postgresql:
+              use_pg_rewind: true
+          initdb:
+            - encoding: UTF8
+            - data-checksums
+          pg_hba:
+            - host replication replicator 0.0.0.0/0 md5
+            - host all all 0.0.0.0/0 md5
+          post_bootstrap: psql -c "CREATE DATABASE MY_SERVICE OWNER MY_SERVICE"
+        postgresql:
+          listen: 0.0.0.0:5432
+          connect_address: db1:5432
+          data_dir: /home/postgres/pgdata/data
+          parameters:
+            unix_socket_directories: '/var/run/postgresql'
+        tags:
+          nofailover: false
+          noloadbalance: false
+          clonefrom: false
+          nosync: false
+    volumes:
+      - MY-SERVICE-prod-db1-data:/home/postgres
+    deploy:
+      <<: *patroni-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+
+  db2:
+    <<: *patroni-common
+    hostname: db2
+    environment:
+      PATRONI_SUPERUSER_USERNAME: MY_SERVICE
+      PATRONI_REPLICATION_USERNAME: replicator
+      PATRONI_CONFIGURATION: |
+        scope: MY_SERVICE-prod
+        name: db2
+        restapi:
+          listen: 0.0.0.0:8008
+          connect_address: db2:8008
+        etcd3:
+          hosts: etcd-prod_etcd1:2379,etcd-prod_etcd2:2379,etcd-prod_etcd3:2379
+        bootstrap:
+          dcs:
+            ttl: 30
+            loop_wait: 10
+            retry_timeout: 10
+            maximum_lag_on_failover: 1048576
+            postgresql:
+              use_pg_rewind: true
+          initdb:
+            - encoding: UTF8
+            - data-checksums
+          pg_hba:
+            - host replication replicator 0.0.0.0/0 md5
+            - host all all 0.0.0.0/0 md5
+          post_bootstrap: psql -c "CREATE DATABASE MY_SERVICE OWNER MY_SERVICE"
+        postgresql:
+          listen: 0.0.0.0:5432
+          connect_address: db2:5432
+          data_dir: /home/postgres/pgdata/data
+          parameters:
+            unix_socket_directories: '/var/run/postgresql'
+        tags:
+          nofailover: false
+          noloadbalance: false
+          clonefrom: false
+          nosync: false
+    volumes:
+      - MY-SERVICE-prod-db2-data:/home/postgres
+    deploy:
+      <<: *patroni-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == itrider
+
+  haproxy:
+    image: haproxy:2.9-alpine
+    hostname: haproxy
+    networks:
+      - MY-SERVICE-prod-internal
+    configs:
+      - source: MY_SERVICE_prod_haproxy_cfg_v1
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    deploy:
+      replicas: 1
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+configs:
+  # Les configs Swarm sont immuables : tout changement de contenu de
+  # MY-SERVICE-haproxy.cfg nécessite un nouveau nom ici (incrémenter
+  # _v1 → _v2, comme pour grafana_datasources_v2 dans stacks/core).
+  # --prune nettoie l'ancien objet devenu orphelin.
+  MY_SERVICE_prod_haproxy_cfg_v1:
+    file: ./MY-SERVICE-haproxy.cfg
+
+volumes:
+  MY-SERVICE-prod-db1-data:
+  MY-SERVICE-prod-db2-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  MY-SERVICE-prod-internal:
+    driver: overlay
+    internal: true
+
+secrets:
+  MY_SERVICE_prod_db_password:
+    external: true
+  MY_SERVICE_prod_db_replication_password:
+    external: true
+  MY_SERVICE_prod_api_key:
+    external: true

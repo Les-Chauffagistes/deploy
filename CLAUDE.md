@@ -21,7 +21,7 @@ Dépôt d'orchestration Docker Swarm de l'organisation Les Chauffagistes. Il ne 
 
 - **`traefik-public`** (externe) — réseau sur lequel Traefik route le trafic. Tout service exposé via Traefik **doit** y être attaché.
 - **`chauffagistes-net`** (externe) — communication inter-services (DNS Swarm entre stacks).
-- **`<service>-<env>-internal`** (overlay interne) — réseau isolé pour la communication app ↔ db au sein d'un même stack. La db n'est jamais sur `chauffagistes-net`.
+- **`<service>-<env>-internal`** (overlay interne) — réseau isolé pour la communication app ↔ db au sein d'un même stack. La db n'est jamais sur `chauffagistes-net`, sauf les nœuds Patroni des services en haute disponibilité, qui doivent y être pour atteindre le cluster etcd partagé — voir [Haute disponibilité Postgres](#haute-disponibilité-postgres-patroni--etcd).
 
 ## Organisation des stacks
 
@@ -110,6 +110,49 @@ Déclenché sur push `develop` (staging) et `main` (prod). Étapes :
 4. Créer les secrets sur le manager Swarm
 5. Ajouter le workflow `build.yml` dans le repo du service
 6. Committer — la CI déploie automatiquement
+
+## Haute disponibilité Postgres (Patroni + etcd)
+
+Par défaut (template `with-db`), la db d'un microservice est un unique `postgres:16-alpine` pinné
+sur un nœud : si ce nœud tombe, la db et ses données sont inaccessibles jusqu'à son retour. Pour les
+services qui ne peuvent pas se permettre ça, le template `with-db-ha` (voir `_templates/README.md`)
+déploie à la place un cluster Patroni à 2 nœuds Postgres + HAProxy devant, qui route toujours vers le
+primaire actuel.
+
+### DCS partagé (etcd)
+
+Patroni a besoin d'un DCS (Distributed Consensus Store) pour élire le primaire. On utilise **un seul
+cluster etcd à 3 membres par environnement**, partagé par tous les services HA (namespacé par le
+`scope` Patroni de chacun) — pas un DCS dédié par service :
+
+- `stacks/staging/etcd.yml` → stack `etcd-staging`
+- `stacks/prod/etcd.yml` → stack `etcd-prod`
+
+3 membres, un par nœud physique (`hugo`, `vps`, `itrider`), pour garder un quorum même si un nœud
+tombe. etcd est volontairement sur `chauffagistes-net` (seule exception à la règle "la db n'est jamais
+sur `chauffagistes-net`") car il doit être joignable depuis n'importe quel stack de service, et il ne
+stocke aucune donnée métier — seulement l'état d'élection des clusters Patroni.
+
+Le mode Raft interne de Patroni (pas d'etcd/Consul externe, DCS embarqué dans chaque nœud Postgres)
+a été écarté : il est marqué **beta/déprécié** par Patroni upstream. `reference.yaml` à la racine du
+repo est le spike qui a servi à valider Patroni avant ce choix — gardé pour référence, jamais déployé
+par la CI.
+
+### Pattern par service (template `with-db-ha`)
+
+- `db1`/`db2` : Patroni + `timescale/timescaledb-ha`, chacun pinné sur un nœud physique différent
+  (pas le même que l'app). Sur `<service>-<env>-internal` **et** `chauffagistes-net` (uniquement
+  pour atteindre etcd, pas pour le trafic applicatif).
+- `haproxy` : devant `db1`/`db2`, healthcheck sur l'API REST Patroni (`GET /primary`, 200 seulement
+  sur le primaire). Seul service HA sur `<service>-<env>-internal` que l'app doit connaître
+  (`DB_HOST: haproxy`).
+- L'image ne lit pas les secrets Docker nativement pour les mots de passe Patroni : même pattern que
+  `alertmanager-discord` ci-dessous, un entrypoint `sh -c` exporte `PATRONI_SUPERUSER_PASSWORD` /
+  `PATRONI_REPLICATION_PASSWORD` depuis les secrets avant d'exec `/patroni_entrypoint.sh`. Aucun mot
+  de passe n'apparaît en clair dans `PATRONI_CONFIGURATION`.
+
+Avant tout passage en prod d'un service converti à ce template : tester une vraie bascule (arrêter le
+nœud qui porte le primaire, vérifier que `haproxy` reroute automatiquement et que l'app reste up).
 
 ## Monitoring
 

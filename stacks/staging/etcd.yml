@@ -1,0 +1,106 @@
+# Cluster etcd partagé — DCS (Distributed Consensus Store) pour tous les
+# clusters Patroni (Postgres HA) de l'environnement staging. Un seul etcd
+# pour tous les microservices, namespacé par le `scope` Patroni de chacun
+# (voir _templates/with-db-ha.staging.yml).
+#
+# 3 membres, un par nœud physique, pour garder un quorum même si un nœud
+# tombe. Sur chauffagistes-net : exception délibérée à la règle "la db
+# n'est jamais sur chauffagistes-net" (CLAUDE.md) — etcd ne stocke aucune
+# donnée métier, seulement l'état d'élection des clusters Patroni, et doit
+# être joignable depuis n'importe quel autre stack.
+#
+# ETCD_INITIAL_ADVERTISE_PEER_URLS utilise le nom court (trafic peer-to-peer
+# toujours intra-stack). ETCD_ADVERTISE_CLIENT_URLS utilise le nom qualifié
+# inter-stack (etcd-staging_etcdN) car les clients (Patroni dans d'autres
+# stacks) en dépendent pour résoudre les membres du cluster.
+
+x-etcd-common: &etcd-common
+  image: gcr.io/etcd-development/etcd:v3.6.6
+  networks:
+    - chauffagistes-net
+  healthcheck:
+    test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 30s
+
+x-etcd-env: &etcd-env
+  ETCDCTL_API: "3"
+  ETCD_INITIAL_CLUSTER: etcd1=http://etcd1:2380,etcd2=http://etcd2:2380,etcd3=http://etcd3:2380
+  ETCD_INITIAL_CLUSTER_STATE: new
+  ETCD_INITIAL_CLUSTER_TOKEN: etcd-staging-cluster
+  ETCD_ENABLE_V2: "false"
+  ETCD_DATA_DIR: /etcd-data
+  ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+  ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+
+x-etcd-deploy: &etcd-deploy
+  replicas: 1
+  update_config:
+    order: stop-first
+  restart_policy:
+    condition: any
+    delay: 5s
+  resources:
+    limits:
+      cpus: "0.5"
+      memory: 512M
+
+services:
+  etcd1:
+    <<: *etcd-common
+    hostname: etcd1
+    environment:
+      <<: *etcd-env
+      ETCD_NAME: etcd1
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd1:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-staging_etcd1:2379
+    volumes:
+      - etcd-staging-1-data:/etcd-data
+    deploy:
+      <<: *etcd-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+
+  etcd2:
+    <<: *etcd-common
+    hostname: etcd2
+    environment:
+      <<: *etcd-env
+      ETCD_NAME: etcd2
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd2:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-staging_etcd2:2379
+    volumes:
+      - etcd-staging-2-data:/etcd-data
+    deploy:
+      <<: *etcd-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == vps
+
+  etcd3:
+    <<: *etcd-common
+    hostname: etcd3
+    environment:
+      <<: *etcd-env
+      ETCD_NAME: etcd3
+      ETCD_INITIAL_ADVERTISE_PEER_URLS: http://etcd3:2380
+      ETCD_ADVERTISE_CLIENT_URLS: http://etcd-staging_etcd3:2379
+    volumes:
+      - etcd-staging-3-data:/etcd-data
+    deploy:
+      <<: *etcd-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == itrider
+
+networks:
+  chauffagistes-net:
+    external: true
+
+volumes:
+  etcd-staging-1-data:
+  etcd-staging-2-data:
+  etcd-staging-3-data:

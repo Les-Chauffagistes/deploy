@@ -6,7 +6,12 @@
 |---|---|
 | Service avec PostgreSQL, **non exposé** (ex: HeatCoin) | `_templates/with-db.staging.yml` + `with-db.prod.yml` |
 | Service avec PostgreSQL + routes publiques | `_templates/with-db-exposed.staging.yml` + `with-db-exposed.prod.yml` |
+| Service avec PostgreSQL **en haute disponibilité** (survit à la panne d'un nœud) | `_templates/with-db-ha.staging.yml` + `with-db-ha.prod.yml` |
 | Service sans DB (ex: frontend NextJS) | `_templates/no-db.staging.yml` + `no-db.prod.yml` |
+
+> Le template HA (Patroni + HAProxy sur DCS etcd partagé) demande plus de nœuds/conteneurs et
+> une vraie procédure de bascule à tester avant mise en prod — voir la section dédiée plus bas.
+> Pour un service secondaire ou peu critique, `with-db.staging.yml` reste le bon choix par défaut.
 
 ---
 
@@ -87,6 +92,29 @@ docker exec <container_db> pg_dump -U MY_SERVICE MY_SERVICE > backup.sql
 # 3. Restaurer sur le nouveau nœud
 docker exec -i <nouveau_container_db> psql -U MY_SERVICE MY_SERVICE < backup.sql
 ```
+
+---
+
+## 6. Cas particulier : template `with-db-ha`
+
+Diffère des autres templates sur trois points :
+
+- **Prérequis** : le cluster etcd partagé de l'environnement doit déjà être déployé
+  (`stacks/staging/etcd.yml` / `stacks/prod/etcd.yml`, stacks `etcd-staging` / `etcd-prod`) —
+  c'est le DCS (Distributed Consensus Store) que Patroni utilise pour élire le primaire.
+  Un seul etcd pour tous les services HA d'un environnement, pas un par service.
+- **Fichier en plus à copier** : `_templates/with-db-ha-haproxy.cfg` → `stacks/<env>/MY-SERVICE-haproxy.cfg`
+  (contenu générique, pas de placeholder à remplacer dedans). C'est la config Swarm référencée par le
+  service `haproxy` du stack file.
+- **Secret en plus à créer** : en plus de `db_password` et `api_key`, il faut
+  `MY_SERVICE_<env>_db_replication_password` (mot de passe du rôle de réplication Postgres interne,
+  jamais utilisé par l'app).
+- `db1`/`db2` sont pinnés chacun sur un nœud physique différent (pas le même nœud que l'app, qui n'a
+  plus besoin d'être pinnée du tout — elle passe toujours par `haproxy`, qui route vers le primaire
+  du moment). Voir les commentaires en tête de `with-db-ha.staging.yml` pour le détail.
+
+Avant tout passage en prod : tester une vraie bascule (arrêter le nœud qui porte le primaire, vérifier
+que `haproxy` reroute automatiquement vers l'autre nœud et que l'app reste disponible).
 
 ---
 

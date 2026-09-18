@@ -1,0 +1,145 @@
+version: "3.8"
+
+# Spike : cluster Patroni à 3 membres sur timescaledb-ha, DCS = Raft interne
+# (pas d'etcd/Consul externe). 2 nœuds Postgres (node1, node2) + 1 témoin
+# raft-only (witness, patroni_raft_controller, pas de Postgres) pour garder
+# un quorum impair.
+#
+# But : valider que le mode Raft de Patroni fonctionne proprement sur cette
+# image en dehors de Kubernetes, avant de porter ça sur le vrai Swarm.
+
+x-patroni-common: &patroni-common
+  image: timescale/timescaledb-ha:pg17
+  entrypoint: /patroni_entrypoint.sh
+  networks:
+    - spike-net
+
+services:
+  node1:
+    <<: *patroni-common
+    hostname: node1
+    environment:
+      PATRONI_CONFIGURATION: |
+        scope: spike
+        name: node1
+        restapi:
+          listen: 0.0.0.0:8008
+          connect_address: node1:8008
+        raft:
+          self_addr: node1:2222
+          partner_addrs: ['node2:2222', 'witness:2222']
+          data_dir: /home/postgres/raft
+        bootstrap:
+          dcs:
+            ttl: 30
+            loop_wait: 10
+            retry_timeout: 10
+            maximum_lag_on_failover: 1048576
+            postgresql:
+              use_pg_rewind: true
+          initdb:
+            - encoding: UTF8
+            - data-checksums
+          pg_hba:
+            - host replication replicator 0.0.0.0/0 md5
+            - host all all 0.0.0.0/0 md5
+        postgresql:
+          listen: 0.0.0.0:5432
+          connect_address: node1:5432
+          data_dir: /home/postgres/pgdata/data
+          authentication:
+            replication:
+              username: replicator
+              password: replpass
+            superuser:
+              username: postgres
+              password: supersecret
+          parameters:
+            unix_socket_directories: '/var/run/postgresql'
+        tags:
+          nofailover: false
+          noloadbalance: false
+          clonefrom: false
+          nosync: false
+    volumes:
+      - node1-data:/home/postgres
+    ports:
+      - "18008:8008"
+      - "15433:5432"
+
+  node2:
+    <<: *patroni-common
+    hostname: node2
+    environment:
+      PATRONI_CONFIGURATION: |
+        scope: spike
+        name: node2
+        restapi:
+          listen: 0.0.0.0:8008
+          connect_address: node2:8008
+        raft:
+          self_addr: node2:2222
+          partner_addrs: ['node1:2222', 'witness:2222']
+          data_dir: /home/postgres/raft
+        bootstrap:
+          dcs:
+            ttl: 30
+            loop_wait: 10
+            retry_timeout: 10
+            maximum_lag_on_failover: 1048576
+            postgresql:
+              use_pg_rewind: true
+          initdb:
+            - encoding: UTF8
+            - data-checksums
+          pg_hba:
+            - host replication replicator 0.0.0.0/0 md5
+            - host all all 0.0.0.0/0 md5
+        postgresql:
+          listen: 0.0.0.0:5432
+          connect_address: node2:5432
+          data_dir: /home/postgres/pgdata/data
+          authentication:
+            replication:
+              username: replicator
+              password: replpass
+            superuser:
+              username: postgres
+              password: supersecret
+          parameters:
+            unix_socket_directories: '/var/run/postgresql'
+        tags:
+          nofailover: false
+          noloadbalance: false
+          clonefrom: false
+          nosync: false
+    volumes:
+      - node2-data:/home/postgres
+    ports:
+      - "28008:8008"
+      - "25433:5432"
+
+  witness:
+    image: timescale/timescaledb-ha:pg17
+    entrypoint: /usr/bin/patroni_raft_controller
+    hostname: witness
+    networks:
+      - spike-net
+    environment:
+      PATRONI_CONFIGURATION: |
+        scope: spike
+        name: witness
+        raft:
+          self_addr: witness:2222
+          partner_addrs: ['node1:2222', 'node2:2222']
+          data_dir: /home/postgres/raft
+    volumes:
+      - witness-data:/home/postgres
+
+networks:
+  spike-net:
+
+volumes:
+  node1-data:
+  node2-data:
+  witness-data:
