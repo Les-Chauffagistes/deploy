@@ -1,0 +1,20 @@
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "lmdb"
+
+# Un seul nœud physique ("backup") : pas de réplication possible.
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "core_garage:3901"
+rpc_secret_file = "/run/secrets/garage_rpc_secret"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+# Pas de root_domain : pas de DNS wildcard interne, les clients utilisent
+# le style path (http://core_garage:3900/<bucket>/<clé>) plutôt que virtual-hosted.
+
+[admin]
+api_bind_addr = "[::]:3903"
+admin_token_file = "/run/secrets/garage_admin_token"

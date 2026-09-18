@@ -1,0 +1,67 @@
+# Garage — stockage S3 auto-hébergé pour les sauvegardes DB, sur le nœud
+# dédié "backup" (voir .claude/skills/swarm/SKILL.md pour l'accès SSH).
+#
+# Aucun port publié : joignable uniquement depuis les autres stacks via
+# chauffagistes-net, en DNS inter-stack "core_garage:<port>"
+# (3900 = S3 API, 3901 = RPC, 3903 = admin API).
+#
+# Bootstrap du cluster (une fois, après le premier déploiement — cluster à
+# un seul nœud donc replication_factor=1, pas de tolérance de panne) :
+#   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage status"
+#   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage layout assign -z backup -c <capacité, ex: 200G> <node_id ci-dessus>"
+#   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage layout apply --version 1"
+#
+# Puis, par service consommateur (une clé + un bucket dédiés, jamais partagés) :
+#   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage key create <service>-backup"
+#   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage bucket create <service>-backups"
+#   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage bucket allow --read --write --key <service>-backup <service>-backups"
+# Le endpoint S3 à donner au service consommateur : http://core_garage:3900 (path-style).
+
+services:
+  garage:
+    image: dxflrs/garage:v2.4.1
+    configs:
+      - source: garage_config
+        target: /etc/garage.toml
+    secrets:
+      - source: core_garage_rpc_secret
+        target: garage_rpc_secret
+      - source: core_garage_admin_token
+        target: garage_admin_token
+    volumes:
+      - garage-meta:/var/lib/garage/meta
+      - garage-data:/var/lib/garage/data
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == backup
+      update_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+
+configs:
+  garage_config:
+    file: ./garage.config.toml
+
+volumes:
+  garage-meta:
+  garage-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+
+secrets:
+  core_garage_rpc_secret:
+    external: true
+  core_garage_admin_token:
+    external: true
