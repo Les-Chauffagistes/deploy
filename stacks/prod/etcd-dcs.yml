@@ -35,14 +35,15 @@ x-etcd-common: &etcd-common
   image: gcr.io/etcd-development/etcd:v3.6.6
   networks:
     - chauffagistes-net
-  healthcheck:
-    # start_period généreux : au premier bootstrap, les 3 membres doivent se
-    # voir et élire un leader avant que endpoint health ne réponde 200.
-    test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
-    interval: 10s
-    timeout: 5s
-    retries: 10
-    start_period: 90s
+  # PAS de healthcheck Docker, volontairement. Swarm ne publie une tâche
+  # dans son DNS (et son VIP) qu'une fois son healthcheck "healthy". Or
+  # `etcdctl endpoint health` n'est healthy qu'avec un quorum, et le quorum
+  # exige que les pairs se résolvent en DNS : deadlock au bootstrap (NXDOMAIN
+  # sur les 3 noms, même en local sur le nœud), chaque tâche est tuée comme
+  # unhealthy au bout de ~4 min et le cycle recommence. Un check de pure
+  # liveness n'est pas faisable simplement (image distroless, ni curl ni
+  # wget pour /livez). La santé du cluster se surveille via Prometheus
+  # (etcd_server_has_leader), pas via Swarm.
 
 x-etcd-env: &etcd-env
   ETCDCTL_API: "3"
