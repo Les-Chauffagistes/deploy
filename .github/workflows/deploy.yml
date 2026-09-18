@@ -128,6 +128,15 @@ jobs:
             --prune \
             core
 
+      # Prod uniquement : les images sha- du staging n'ont pas à encombrer les
+      # nœuds. Non bloquant : un nœud en panne ne doit pas empêcher de déployer.
+      - name: Pre-pull prod images on workload nodes
+        if: |
+          github.ref == 'refs/heads/main' &&
+          (inputs.force_deploy || needs.changes.outputs.prod == 'true')
+        continue-on-error: true
+        run: .github/scripts/prepull-images.sh stacks/prod/*.yml
+
       - name: Deploy services
         if: |
           inputs.force_deploy ||

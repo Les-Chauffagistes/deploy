@@ -99,8 +99,9 @@ Déclenché sur push `develop` (staging) et `main` (prod). Étapes :
 
 1. **Guard** (prod uniquement) — vérifie qu'aucune image dans `stacks/prod/` ne porte un tag `sha-` ou `branch-`
 2. **Deploy core** — `docker stack deploy` de tous les fichiers `stacks/core/*.yml` sous le nom `core`
-3. **Deploy services** — itère sur `stacks/<env>/*.yml`, nom du stack = `<fichier>-<env>`
-4. **Verify convergence** — attend que tous les services atteignent leur nombre de replicas cible (timeout 120s, 180s pour core)
+3. **Pre-pull** (prod uniquement) — `.github/scripts/prepull-images.sh` fait télécharger les images du registry privé référencées dans `stacks/prod/` sur tous les nœuds `workload == true` (un service Swarm `global-job` par image), pour qu'un nœud puisse reprendre les services d'un autre même si le registry est injoignable. Non bloquant
+4. **Deploy services** — itère sur `stacks/<env>/*.yml`, nom du stack = `<fichier>-<env>`
+5. **Verify convergence** — attend que tous les services atteignent leur nombre de replicas cible (timeout 120s, 180s pour core)
 
 ## Ajouter un nouveau service
 
