@@ -8,6 +8,9 @@ export PATRONI_SUPERUSER_USERNAME=postgres
 export PATRONI_SUPERUSER_PASSWORD="$(secret superuser_password)"
 export PATRONI_REPLICATION_USERNAME=replicator
 export PATRONI_REPLICATION_PASSWORD="$(secret replication_password)"
+# Protège les endpoints REST qui modifient l'état (switchover, restart...).
+export PATRONI_RESTAPI_USERNAME=patroni
+export PATRONI_RESTAPI_PASSWORD="$(secret restapi_password)"
 
 # barman-cloud (boto3) vers Garage : région "garage", adressage par chemin.
 export AWS_ACCESS_KEY_ID="$(secret s3_key_id)"
@@ -16,7 +19,8 @@ export AWS_DEFAULT_REGION=garage
 export AWS_CONFIG_FILE=/tmp/aws-config
 printf '[default]\ns3 =\n    addressing_style = path\n' > "$AWS_CONFIG_FILE"
 
-cp /etc/patroni/patroni.yml /home/postgres/postgres.yml
+# install et non cp : la copie précédente est en lecture seule.
+install -m 0600 /etc/patroni/patroni.yml /home/postgres/postgres.yml
 
 barman() {
   local cmd=$1; shift

@@ -8,7 +8,8 @@
 #   + sauvegarde complète quotidienne (voir pg-ha-entrypoint.sh).
 #
 # Secrets : postgres_staging_password (superuser), pg_ha_staging_replication_password,
-# pg_ha_staging_s3_key_id / pg_ha_staging_s3_secret_key (clé Garage pg-staging).
+# pg_ha_staging_restapi_password, pg_ha_staging_s3_key_id / pg_ha_staging_s3_secret_key
+# (clé Garage pg-staging).
 
 x-db: &db
   image: timescale/timescaledb-ha:pg17@sha256:9665079bcf1403aa1751f4139acbb5dae6b458c7653dfd357acd4e7ae0973192
@@ -21,12 +22,14 @@ x-db: &db
       target: superuser_password
     - source: pg_ha_staging_replication_password
       target: replication_password
+    - source: pg_ha_staging_restapi_password
+      target: restapi_password
     - source: pg_ha_staging_s3_key_id
       target: s3_key_id
     - source: pg_ha_staging_s3_secret_key
       target: s3_secret_key
   configs:
-    - source: pg_ha_staging_entrypoint_v1
+    - source: pg_ha_staging_entrypoint_v2
       target: /pg-ha/entrypoint.sh
       mode: 0555
     - source: pg_ha_staging_patroni_v1
@@ -131,7 +134,7 @@ services:
 
 configs:
   # Configs Swarm immuables : incrémenter _vN à chaque changement de fichier.
-  pg_ha_staging_entrypoint_v1:
+  pg_ha_staging_entrypoint_v2:
     file: ./pg-ha-entrypoint.sh
   pg_ha_staging_patroni_v1:
     file: ./pg-ha-patroni.yaml
@@ -156,6 +159,8 @@ secrets:
   postgres_staging_password:
     external: true
   pg_ha_staging_replication_password:
+    external: true
+  pg_ha_staging_restapi_password:
     external: true
   pg_ha_staging_s3_key_id:
     external: true
