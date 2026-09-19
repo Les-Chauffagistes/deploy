@@ -57,3 +57,36 @@ groups:
         annotations:
           summary: "Pic de logs error/fatal sur {{ $labels.swarm_service }} (logs non structurés)"
           description: "Plus de 10 lignes error/fatal/crit en 5 minutes pour {{ $labels.swarm_service }} — service sans logs JSON, le seuil peut être atteint par une seule stack trace multi-lignes."
+
+  # Sauvegardes barman-cloud des clusters pg-ha (voir stacks/*/pg-ha-entrypoint.sh).
+  - name: postgres-backups
+    rules:
+      - alert: PgBackupFailed
+        expr: |
+          sum by (swarm_stack) (count_over_time({swarm_stack=~"pg-ha-.+"} |= "pg-ha-backup: FAILED" [30m])) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Échec de sauvegarde Postgres : {{ $labels.swarm_stack }}"
+          description: "La sauvegarde complète quotidienne de {{ $labels.swarm_stack }} a échoué (voir les logs des services db1/db2)."
+
+      - alert: PgWalArchiveFailed
+        expr: |
+          sum by (swarm_stack) (count_over_time({swarm_stack=~"pg-ha-.+"} |= "archive command failed" [15m])) > 2
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Archivage WAL en échec : {{ $labels.swarm_stack }}"
+          description: "Postgres n'arrive plus à envoyer ses WAL vers Garage pour {{ $labels.swarm_stack }} : la restauration à un instant donné n'est plus garantie et pg_wal grossit."
+
+      - alert: PgBackupMissingStaging
+        expr: |
+          absent_over_time({swarm_stack="pg-ha-staging"} |= "pg-ha-backup: OK" [26h])
+        for: 2h
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pas de sauvegarde Postgres récente : pg-ha-staging"
+          description: "Aucune sauvegarde complète réussie de pg-ha-staging depuis plus de 26 heures."

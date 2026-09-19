@@ -15,7 +15,7 @@
 #   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage key create <service>-backup"
 #   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage bucket create <service>-backups"
 #   ssh vps "docker exec \$(docker ps -q -f name=core_garage) /garage bucket allow --read --write --key <service>-backup <service>-backups"
-# Le endpoint S3 à donner au service consommateur : http://core_garage:3900 (path-style).
+# Le endpoint S3 à donner au service consommateur : http://garage:3900 (path-style).
 
 services:
   garage:
@@ -34,7 +34,11 @@ services:
       - garage-meta:/var/lib/garage/meta
       - garage-data:/var/lib/garage/data
     networks:
-      - chauffagistes-net
+      chauffagistes-net:
+        # Nom sans "_" : les clients S3 basés sur botocore (barman-cloud)
+        # rejettent "core_garage" comme hôte d'endpoint.
+        aliases:
+          - garage
     deploy:
       replicas: 1
       placement:

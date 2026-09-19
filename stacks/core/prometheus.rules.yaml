@@ -66,3 +66,46 @@ groups:
         annotations:
           summary: "Espace disque Garage faible ({{ $labels.volume }})"
           description: "Moins de 10% d'espace disque restant sur le volume {{ $labels.volume }} de Garage — les sauvegardes risquent d'échouer."
+
+  - name: postgres-ha
+    rules:
+      - alert: PatroniNoPrimary
+        expr: max by (scope) (patroni_primary) < 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Aucun primaire Postgres : {{ $labels.scope }}"
+          description: "Le cluster Patroni {{ $labels.scope }} n'a plus de primaire depuis 1 minute : les écritures échouent."
+
+      - alert: PatroniNoReplica
+        expr: sum by (scope) (patroni_replica) < 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Plus de replica Postgres : {{ $labels.scope }}"
+          description: "Le cluster Patroni {{ $labels.scope }} n'a plus de replica depuis 10 minutes : la perte du nœud primaire ne serait plus rattrapée."
+
+      - alert: PatroniReplicationLag
+        # Position WAL du primaire moins position rejouée par chaque replica.
+        expr: |
+          max by (scope) (patroni_xlog_location)
+            - on (scope) group_right()
+          (patroni_xlog_replayed_location and on (scope, name) (patroni_replica == 1))
+            > 64 * 1024 * 1024
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Retard de réplication : {{ $labels.scope }}/{{ $labels.name }}"
+          description: "Le replica {{ $labels.name }} a plus de 64 Mo de WAL de retard sur le primaire depuis 10 minutes."
+
+      - alert: PatroniFailsafeActive
+        expr: max by (scope) (patroni_failsafe_mode_is_active) == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Patroni en failsafe : {{ $labels.scope }}"
+          description: "{{ $labels.scope }} ne joint plus le quorum etcd et tient grâce au failsafe_mode. Vérifier etcd-dcs."

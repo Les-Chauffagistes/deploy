@@ -63,6 +63,7 @@ scrape_configs:
   # Opt-in générique pour n'importe quel microservice : ajouter les labels
   # Swarm `prometheus.scrape=true` + `prometheus.port=<port>` (et
   # optionnellement `prometheus.path=/metrics`) dans deploy.labels du service.
+  # Le service doit être sur chauffagistes-net.
   - job_name: swarm-services
     dockerswarm_sd_configs:
       - host: unix:///var/run/docker.sock
@@ -73,6 +74,11 @@ scrape_configs:
         action: keep
       - source_labels: [__meta_dockerswarm_service_label_prometheus_scrape]
         regex: "true"
+        action: keep
+      # Une cible par réseau de la tâche : ne garder que celle joignable par
+      # Prometheus, sinon un service multi-réseaux remonte des cibles down.
+      - source_labels: [__meta_dockerswarm_network_name]
+        regex: chauffagistes-net
         action: keep
       - source_labels: [__meta_dockerswarm_service_name]
         target_label: swarm_service
