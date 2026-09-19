@@ -181,7 +181,8 @@ jobs:
               local BAD_UPDATE=""
               local NOT_READY=""
 
-              while read -r name replicas; do
+              # `_` absorbe le suffixe "(max N per node)" de max_replicas_per_node.
+              while read -r name replicas _; do
                 [ -z "$name" ] && continue
                 echo "$name" | grep -q "_migrator" && continue
 
