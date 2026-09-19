@@ -134,7 +134,7 @@ configs:
   pg_ha_staging_entrypoint_v1:
     file: ./pg-ha-entrypoint.sh
   pg_ha_staging_patroni_v1:
-    file: ./pg-ha-patroni.yml
+    file: ./pg-ha-patroni.yaml
   pg_ha_staging_haproxy_v1:
     file: ./pg-ha-haproxy.cfg
 
