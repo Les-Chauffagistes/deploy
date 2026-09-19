@@ -1,0 +1,164 @@
+{
+  "uid": "garage-s3",
+  "title": "Garage (S3)",
+  "tags": ["garage", "s3", "backup"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    { "id": 1, "type": "row", "title": "Cluster", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Cluster",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "cluster_healthy", "legendFormat": "healthy" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "Unhealthy" }, "1": { "text": "Healthy" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Disponibilité",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "cluster_available", "legendFormat": "available" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "Indisponible" }, "1": { "text": "Disponible" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Nœuds de stockage connectés",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "cluster_storage_nodes_ok", "legendFormat": "connectés" },
+        { "expr": "cluster_storage_nodes", "legendFormat": "déclarés" }
+      ],
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Partitions à quorum",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "cluster_partitions_quorum", "legendFormat": "quorum" },
+        { "expr": "cluster_partitions", "legendFormat": "total" }
+      ],
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    { "id": 10, "type": "row", "title": "Stockage disque", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 } },
+    {
+      "id": 11,
+      "type": "bargauge",
+      "title": "Espace disque disponible (%)",
+      "description": "Espace réel restant sous les volumes data/metadata — pas la capacité de 80G assignée au layout, que Garage ne fait pas respecter comme un quota dur. Seuils alignés sur l'alerte GarageDiskSpaceLow (< 10%).",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "garage_local_disk_avail / garage_local_disk_total", "legendFormat": "{{volume}}" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 0.1 }, { "color": "green", "value": 0.2 }] }
+        }
+      },
+      "options": { "orientation": "horizontal", "displayMode": "gradient" }
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Espace disque disponible",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "garage_local_disk_avail", "legendFormat": "{{volume}} — disponible" },
+        { "expr": "garage_local_disk_total", "legendFormat": "{{volume}} — total" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+
+    { "id": 20, "type": "row", "title": "API S3", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 } },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Débit de requêtes S3",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (api_endpoint) (rate(api_s3_request_counter[5m]))", "legendFormat": "{{api_endpoint}}" }],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Erreurs S3",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (status_code) (rate(api_s3_error_counter[5m]))", "legendFormat": "{{status_code}}" }],
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "fixed", "fixedColor": "red" } } }
+    },
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Latence S3 (p99)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 15 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.99, sum by (le, api_endpoint) (rate(api_s3_request_duration_bucket[5m])))", "legendFormat": "{{api_endpoint}}" }],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+
+    { "id": 30, "type": "row", "title": "Résync & RPC internes", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 } },
+    {
+      "id": 31,
+      "type": "stat",
+      "title": "Blocs en erreur de resync",
+      "description": "Doit rester à 0 en cluster sain (voir alerte block_resync_errored_blocks).",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "block_resync_errored_blocks" }],
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } } },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "File d'attente de resync",
+      "gridPos": { "h": 6, "w": 9, "x": 6, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "block_resync_queue_length" }]
+    },
+    {
+      "id": 33,
+      "type": "timeseries",
+      "title": "RPC internes (débit)",
+      "gridPos": { "h": 6, "w": 9, "x": 15, "y": 24 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (rpc_endpoint) (rate(rpc_request_counter[5m]))", "legendFormat": "{{rpc_endpoint}}" }],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    }
+  ]
+}

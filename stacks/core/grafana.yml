@@ -9,6 +9,10 @@ services:
     configs:
       - source: grafana_datasources_v2
         target: /etc/grafana/provisioning/datasources/datasources.yml
+      - source: grafana_dashboards_provider_v1
+        target: /etc/grafana/provisioning/dashboards/provider.yml
+      - source: grafana_dashboard_garage_v1
+        target: /etc/grafana/provisioning/dashboards/garage.json
     secrets:
       - source: core_grafana_admin_password
         target: grafana_admin_password
@@ -41,6 +45,13 @@ configs:
   # pour le même piège). --prune nettoie l'ancien objet devenu orphelin.
   grafana_datasources_v2:
     file: ./grafana-datasources.yaml
+  # Provisioning des dashboards : le provider pointe sur son propre dossier de
+  # montage, où chaque dashboard JSON est monté à côté (même piège d'immutabilité
+  # que ci-dessus — bumper le nom au moindre changement de contenu).
+  grafana_dashboards_provider_v1:
+    file: ./grafana-dashboards.yaml
+  grafana_dashboard_garage_v1:
+    file: ./garage-dashboard.json
 
 volumes:
   grafana-data:
