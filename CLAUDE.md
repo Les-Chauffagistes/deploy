@@ -21,7 +21,8 @@ Dépôt d'orchestration Docker Swarm de l'organisation Les Chauffagistes. Il ne 
 
 - **`traefik-public`** (externe) — réseau sur lequel Traefik route le trafic. Tout service exposé via Traefik **doit** y être attaché.
 - **`chauffagistes-net`** (externe) — communication inter-services (DNS Swarm entre stacks).
-- **`<service>-<env>-internal`** (overlay interne) — réseau isolé pour la communication app ↔ db au sein d'un même stack. La db n'est jamais sur `chauffagistes-net`, sauf les nœuds Patroni des services en haute disponibilité, qui doivent y être pour atteindre le cluster etcd partagé — voir [Haute disponibilité Postgres](#haute-disponibilité-postgres-patroni--etcd).
+- **`<service>-<env>-internal`** (overlay interne) — réseau isolé pour la communication app ↔ db au sein d'un même stack. La db n'est jamais sur `chauffagistes-net`, sauf les nœuds Patroni du cluster HA partagé, qui doivent y être pour joindre etcd et Garage — voir [Haute disponibilité Postgres](#haute-disponibilité-postgres-patroni--etcd).
+- **`pg-<env>`** (overlay interne, créé par le stack `pg-ha-<env>`) — accès des applis au cluster Postgres HA via `pg-ha-<env>_haproxy`.
 
 ## Organisation des stacks
 
@@ -114,43 +115,53 @@ Déclenché sur push `develop` (staging) et `main` (prod). Étapes :
 
 ## Haute disponibilité Postgres (Patroni + etcd)
 
-Le template `with-db` pinne une unique db sur un nœud : si le nœud tombe, la db est inaccessible
-jusqu'à son retour. Pour les services qui ne peuvent pas se le permettre, `with-db-ha` (voir
-`_templates/README.md`) déploie 2 nœuds Patroni + HAProxy, qui route toujours vers le primaire.
+Un cluster Postgres HA **partagé par environnement** (`stacks/<env>/pg-ha.yml` → stack
+`pg-ha-<env>`), qui héberge une base + un rôle par microservice. Remplace à terme les db pinnées
+du template `with-db` (migration en cours, staging d'abord).
 
-### DCS partagé (etcd)
+- `db1` (hugo) / `db2` (itrider) : Patroni + `timescaledb-ha:pg17`, un par domicile. Si un nœud
+  tombe, l'autre prend le primaire.
+- DCS : cluster etcd partagé `etcd-dcs-<env>` (3 membres : hugo, vps, itrider ; le VPS départage).
+  `failsafe_mode` garde le primaire en écriture si etcd perd son quorum.
+- `haproxy` (2 réplicas, un par nœud workload) route vers le primaire (`GET /primary` sur l'API
+  Patroni). Les applis rejoignent le réseau externe `pg-<env>` avec `DB_HOST: pg-ha-<env>_haproxy`.
+- DataGrip : port publié par HAProxy sur hugo et itrider (5451 en staging), utilisateur `postgres`.
+- API REST Patroni : les endpoints qui modifient l'état (switchover, restart...) exigent
+  l'utilisateur `patroni` + le secret `pg_ha_<env>_restapi_password`.
 
-Un seul cluster etcd à 3 membres par environnement, partagé par tous les services HA (namespacé par
-le `scope` Patroni) : `stacks/<env>/etcd-dcs.yml` → stack `etcd-dcs-<env>`. Un membre par nœud
-physique (`hugo`, `vps`, `itrider`) pour garder le quorum si un nœud tombe. Sur `chauffagistes-net`
-pour être joignable depuis tous les stacks (etcd ne stocke aucune donnée métier).
+Mesuré en staging : bascule planifiée ~8 s de coupure d'écriture, arrêt propre d'un nœud ~10 s,
+crash brutal du primaire ~40 s (expiration du verrou etcd, `ttl: 30`), perte du quorum etcd 0 s.
 
-Le mode Raft interne de Patroni a été écarté (beta/déprécié upstream). `reference.yaml` à la racine
-est le spike Compose qui a validé Patroni, jamais déployé par la CI.
+### Sauvegardes
 
-### Pattern par service (template `with-db-ha`)
+barman-cloud vers Garage (bucket `pg-<env>`, endpoint `http://garage:3900`) : archivage WAL en
+continu + sauvegarde complète quotidienne lancée par le primaire du moment (`pg-ha-entrypoint.sh`),
+avec rétention. Restauration à un instant donné validée en staging. Alertes Loki `PgBackupFailed`,
+`PgWalArchiveFailed`, `PgBackupMissing*`.
 
-- `db1`/`db2` : Patroni + `timescale/timescaledb-ha`, pinnés sur deux nœuds physiques différents.
-  Sur `<service>-<env>-internal` et `chauffagistes-net` (uniquement pour joindre etcd).
-- `haproxy` : check sur l'API REST Patroni (`GET /primary`, 200 seulement sur le primaire). C'est
-  le seul hôte db que l'app connaît (`DB_HOST: haproxy`).
-- Mots de passe Patroni exportés depuis les secrets Docker par un entrypoint `sh -c`, jamais en
-  clair dans `PATRONI_CONFIGURATION`.
+pgBackRest (aussi présent dans l'image) n'est pas utilisé : il n'accepte que du S3 en HTTPS, Garage
+est en HTTP sur le réseau interne.
 
-### Pièges Swarm
+### Pièges
 
 - **Healthcheck et DNS** : Swarm ne publie une tâche dans son DNS (et son VIP) qu'une fois son
-  healthcheck `healthy`. Un service qui découvre ses pairs par DNS ne doit donc jamais avoir un
-  healthcheck qui dépend de ces pairs : c'est pour ça qu'etcd n'a pas de healthcheck (son `endpoint
-  health` exige un quorum, qui exige le DNS des pairs → deadlock au bootstrap, NXDOMAIN sur les 3
-  noms). Pour la même raison, HAProxy résout `db1`/`db2` en continu via le DNS Swarm
-  (`resolvers` + `init-addr none`) au lieu de le faire une seule fois au démarrage.
+  healthcheck `healthy`. Un service qui découvre ses pairs par DNS ne doit pas avoir un healthcheck
+  qui dépend de ces pairs (deadlock au bootstrap : c'est pour ça qu'etcd n'en a pas), ni un
+  healthcheck qui échoue pendant une phase longue normale. Patroni utilise donc `/liveness`, pas
+  `/health` (qui échoue pendant la copie initiale d'un replica).
+- **HAProxy** : résout `db1`/`db2` en continu via le DNS Swarm (`resolvers`), et démarre ses
+  serveurs `init-state down` (HAProxy ≥ 3.1) pour ne jamais router vers un replica avant le premier
+  check.
+- **Mise à jour simultanée** : un `docker stack deploy` qui modifie `db1` **et** `db2` (ex. config
+  commune `pg-ha-patroni.yaml` ou entrypoint) les redémarre en même temps → coupure complète le
+  temps du redémarrage. En prod, passer ces changements hors des heures actives.
+- **Fichiers annexes** : la CI déploie chaque `stacks/<env>/*.yml` comme un stack. Les fichiers de
+  config d'un stack doivent donc être en `.yaml`, `.cfg`, `.sh`...
+- **botocore** (barman-cloud) rejette les hôtes contenant `_` : d'où l'alias réseau `garage` pour
+  `core_garage`.
 - **Volumes** : les données etcd/Patroni survivent à `docker stack rm`. Un membre qui a bootstrappé
-  avec une mauvaise config réutilise cet état et ignore `ETCD_INITIAL_CLUSTER` : après un fix de
-  config qui ne converge pas, vider les volumes.
-
-Avant tout passage en prod d'un service sur ce template : tester une vraie bascule (arrêter le nœud
-qui porte le primaire, vérifier que `haproxy` reroute et que l'app reste up).
+  avec une mauvaise config réutilise cet état : après un fix de config qui ne converge pas, vider
+  les volumes.
 
 ## Monitoring
 

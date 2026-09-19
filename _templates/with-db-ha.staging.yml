@@ -182,7 +182,7 @@ services:
           - node.labels.chauffagistes.host == itrider
 
   haproxy:
-    image: haproxy:2.9-alpine
+    image: haproxy:3.2-alpine
     hostname: haproxy
     networks:
       - MY-SERVICE-staging-internal

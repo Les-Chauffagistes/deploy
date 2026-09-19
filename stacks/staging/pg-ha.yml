@@ -103,7 +103,7 @@ services:
           - node.labels.chauffagistes.host == itrider
 
   haproxy:
-    image: haproxy:2.9-alpine
+    image: haproxy:3.2-alpine
     networks:
       - pg
       - expose   # nécessaire au port publié en mode host (pg est interne)
@@ -113,7 +113,7 @@ services:
         protocol: tcp
         mode: host
     configs:
-      - source: pg_ha_staging_haproxy_v1
+      - source: pg_ha_staging_haproxy_v2
         target: /usr/local/etc/haproxy/haproxy.cfg
     deploy:
       replicas: 2
@@ -138,7 +138,7 @@ configs:
     file: ./pg-ha-entrypoint.sh
   pg_ha_staging_patroni_v1:
     file: ./pg-ha-patroni.yaml
-  pg_ha_staging_haproxy_v1:
+  pg_ha_staging_haproxy_v2:
     file: ./pg-ha-haproxy.cfg
 
 volumes:

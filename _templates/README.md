@@ -97,6 +97,10 @@ docker exec -i <nouveau_container_db> psql -U MY_SERVICE MY_SERVICE < backup.sql
 
 ## 6. Cas particulier : template `with-db-ha`
 
+> Pour un nouveau service, préférer une base dans le cluster HA partagé de l'environnement
+> (stack `pg-ha-<env>`, voir `CLAUDE.md`). Ce template (un cluster Patroni dédié) ne sert qu'aux
+> services qui ont besoin d'être isolés du reste.
+
 - **Prérequis** : le cluster etcd partagé de l'environnement doit tourner (stack `etcd-dcs-<env>`,
   `stacks/<env>/etcd-dcs.yml`). C'est le DCS que Patroni utilise pour élire le primaire.
 - **Fichier en plus** : copier `_templates/with-db-ha-haproxy.cfg` en
