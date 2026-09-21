@@ -1,13 +1,14 @@
 services:
   app:
-    image: 10.10.0.3:5000/auth-service-back:sha-023b209
+    image: 10.10.0.3:5000/auth-service-back:sha-fc513fb
     environment:
       SERVER_PORT: "8080"
-      POSTGRES_DB: auth
       DISCORD_CLIENT_ID: "1100450456091766907"
       DISCORD_CALLBACK_URL: https://api.auth.staging.chauffagistes-btc.fr/discord/callback
       LIGHTNING_CALLBACK_URL: https://auth.staging.chauffagistes-btc.fr/lightning/callback
-      DB_HOST: auth-service-back-staging_db
+      DB_HOST: pg-ha-staging_haproxy
+      DB_USER: auth
+      DB_NAME: auth_services
       DOMAIN_NAME: .chauffagistes-btc.fr
       ENVIRONMENT: staging
     secrets:
@@ -16,7 +17,7 @@ services:
       - source: discord_client_secret_staging
         target: discord_client_secret
       - source: auth_staging_jwt_secret
-        target: jwt_secret
+        target: jwt_secretl
     networks:
       - traefik-public
       - chauffagistes-net
