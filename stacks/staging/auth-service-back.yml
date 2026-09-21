@@ -7,7 +7,7 @@ services:
       DISCORD_CALLBACK_URL: https://api.auth.staging.chauffagistes-btc.fr/discord/callback
       LIGHTNING_CALLBACK_URL: https://auth.staging.chauffagistes-btc.fr/lightning/callback
       DB_HOST: pg-ha-staging_haproxy
-      DB_USER: auth
+      DB_USER: auth_services
       DB_NAME: auth_services
       DOMAIN_NAME: .chauffagistes-btc.fr
       ENVIRONMENT: staging
