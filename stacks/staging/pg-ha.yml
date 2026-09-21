@@ -135,11 +135,11 @@ services:
 configs:
   # Configs Swarm immuables : incrémenter _vN à chaque changement de fichier.
   pg_ha_staging_entrypoint_v2:
-    file: ./pg-ha-entrypoint.sh
+    file: ../common/pg-ha-entrypoint.sh
   pg_ha_staging_patroni_v1:
-    file: ./pg-ha-patroni.yaml
+    file: ../common/pg-ha-patroni.yaml
   pg_ha_staging_haproxy_v2:
-    file: ./pg-ha-haproxy.cfg
+    file: ../common/pg-ha-haproxy.cfg
 
 volumes:
   db1-data:

@@ -36,10 +36,14 @@ jobs:
           # après une promotion en production.
           base: ${{ github.ref }}
           filters: |
+            # stacks/common/** : fichiers de config partagés par les deux
+            # environnements (voir CLAUDE.md), donc les deux redéploient.
             staging:
               - 'stacks/staging/**'
+              - 'stacks/common/**'
             prod:
               - 'stacks/prod/**'
+              - 'stacks/common/**'
             core:
               - 'stacks/core/**'
 

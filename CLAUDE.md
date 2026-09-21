@@ -31,6 +31,9 @@ stacks/
   core/       # Traefik, registry Docker privé, YouTrack — déployés en stack unique "core"
   staging/    # Un fichier par service, déployé depuis la branche develop
   prod/       # Un fichier par service, déployé depuis la branche main
+  common/     # Fichiers de config identiques entre staging et prod (jamais un stack),
+              # référencés en ../common/<fichier> — ex: entrypoint et config Patroni,
+              # config HAProxy de pg-ha. Y toucher redéploie les deux environnements.
   debug/      # Outils ponctuels, jamais déployés par la CI
 ```
 
@@ -135,7 +138,7 @@ crash brutal du primaire ~40 s (expiration du verrou etcd, `ttl: 30`), perte du 
 ### Sauvegardes
 
 barman-cloud vers Garage (bucket `pg-<env>`, endpoint `http://garage:3900`) : archivage WAL en
-continu + sauvegarde complète quotidienne lancée par le primaire du moment (`pg-ha-entrypoint.sh`),
+continu + sauvegarde complète quotidienne lancée par le primaire du moment (`stacks/common/pg-ha-entrypoint.sh`),
 avec rétention. Restauration à un instant donné validée en staging. Alertes Loki `PgBackupFailed`,
 `PgWalArchiveFailed`, `PgBackupMissing*`.
 
@@ -152,8 +155,8 @@ est en HTTP sur le réseau interne.
 - **HAProxy** : résout `db1`/`db2` en continu via le DNS Swarm (`resolvers`), et démarre ses
   serveurs `init-state down` (HAProxy ≥ 3.1) pour ne jamais router vers un replica avant le premier
   check.
-- **Mise à jour simultanée** : un `docker stack deploy` qui modifie `db1` **et** `db2` (ex. config
-  commune `pg-ha-patroni.yaml` ou entrypoint) les redémarre en même temps → coupure complète le
+- **Mise à jour simultanée** : un `docker stack deploy` qui modifie `db1` **et** `db2` (ex. un fichier de
+  `stacks/common/`) les redémarre en même temps → coupure complète le
   temps du redémarrage. En prod, passer ces changements hors des heures actives.
 - **Fichiers annexes** : la CI déploie chaque `stacks/<env>/*.yml` comme un stack. Les fichiers de
   config d'un stack doivent donc être en `.yaml`, `.cfg`, `.sh`...
