@@ -22,6 +22,7 @@ services:
       - traefik-public
       - chauffagistes-net
       - auth-staging-internal
+      - pg-staging
     deploy:
       replicas: 1
       placement:
@@ -96,6 +97,8 @@ networks:
   chauffagistes-net:
     external: true
   traefik-public:
+    external: true
+  pg-staging:
     external: true
   auth-staging-internal:
     driver: overlay
