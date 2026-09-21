@@ -2,7 +2,7 @@ services:
   app:
     image: 10.10.0.3:5000/history-server:sha-05ea1c7
     environment:
-      - DB_HOST=db
+      - DB_HOST=pg-ha-staging_haproxy
       - DB_USER=postgres
       - DB_NAME=chauffagistes
       - PORT=8050
@@ -19,6 +19,7 @@ services:
       - chauffagistes-net
       - traefik-public
       - history-server-staging-internal
+      - pg-staging
     deploy:
       placement:
         constraints:
@@ -102,3 +103,5 @@ networks:
     internal: true
   history-server-staging-db-expose:
     driver: overlay
+  pg-staging:
+    external: true
