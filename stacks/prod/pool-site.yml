@@ -64,7 +64,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == itrider
+          - node.labels.chauffagistes.host == vps
       update_config:
         order: stop-first
       restart_policy:
