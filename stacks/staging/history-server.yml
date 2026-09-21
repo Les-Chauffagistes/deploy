@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/history-server:sha-05ea1c7
+    image: 10.10.0.3:5000/history-server:sha-b654d27
     environment:
       - DB_HOST=pg-ha-staging_haproxy
       - DB_USER=postgres
