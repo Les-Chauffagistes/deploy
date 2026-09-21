@@ -31,7 +31,6 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - heatboard-staging-internal
       - pg-staging
     deploy:
       replicas: 1
@@ -59,21 +58,13 @@ services:
         - "traefik.http.routers.heatboard-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.heatboard-staging.loadbalancer.server.port=3000"
 
-volumes:
-  heatboard-staging-db-data:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  heatboard-staging-internal:
-    driver: overlay
-    internal: true
   pg-staging:
     external: true
-  heatboard-staging-db-expose:
-    driver: overlay
 
 secrets:
   heatboard_staging_db_password:

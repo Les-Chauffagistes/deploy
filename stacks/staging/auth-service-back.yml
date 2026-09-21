@@ -21,7 +21,6 @@ services:
     networks:
       - traefik-public
       - chauffagistes-net
-      - auth-staging-internal
       - pg-staging
     deploy:
       replicas: 1
@@ -49,9 +48,6 @@ services:
         - "traefik.http.routers.auth-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.auth-staging.loadbalancer.server.port=8080"
 
-volumes:
-  auth-staging-db-data:
-
 networks:
   chauffagistes-net:
     external: true
@@ -59,11 +55,6 @@ networks:
     external: true
   pg-staging:
     external: true
-  auth-staging-internal:
-    driver: overlay
-    internal: true
-  auth-staging-db-expose:
-    driver: overlay
 
 secrets:
   auth_staging_db_password:

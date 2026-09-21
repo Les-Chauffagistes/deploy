@@ -18,7 +18,6 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - history-server-staging-internal
       - pg-staging
     deploy:
       placement:
@@ -51,18 +50,10 @@ secrets:
   history_server_staging_stats_api_token:
     external: true
 
-volumes:
-  history-server-staging-pgdata:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  history-server-staging-internal:
-    driver: overlay
-    internal: true
-  history-server-staging-db-expose:
-    driver: overlay
   pg-staging:
     external: true
