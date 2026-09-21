@@ -192,7 +192,9 @@ jobs:
 
                 current=$(echo "$replicas" | cut -d'/' -f1)
                 target=$(echo "$replicas" | cut -d'/' -f2)
-                [ "$current" != "$target" ] && NOT_READY="$NOT_READY $name"
+                # Pas "!=" : en order: start-first, l'ancienne tâche tourne encore
+                # pendant que la nouvelle démarre (ex: 2/1), ce n'est pas un échec.
+                [ "$current" -lt "$target" ] && NOT_READY="$NOT_READY $name"
 
                 update_state=$(docker service inspect \
                   --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{end}}' \
