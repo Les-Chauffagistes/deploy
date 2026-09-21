@@ -17,7 +17,7 @@ services:
       - source: discord_client_secret_staging
         target: discord_client_secret
       - source: auth_staging_jwt_secret
-        target: jwt_secretl
+        target: jwt_secret
     networks:
       - traefik-public
       - chauffagistes-net
