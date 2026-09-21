@@ -1,13 +1,12 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:sha-f18bdbb
+    image: 10.10.0.3:5000/heatboard:sha-b4c9c07
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
-      PGHOST: db
-      PGUSER: postgres
-      PGPORT: "5432"
-      PGDATABASE: chauffagistes
+      DB_HOST: pg-ha-staging_haproxy
+      DB_USER: heatboard
+      DB_NAME: heatboard
       DISCORD_CLIENT_ID: "1100450456091766907"
       DISCORD_REDIRECT_URI: https://heatboard.staging.chauffagistes-btc.fr/api/auth/discord/callback
       NEXTAUTH_URL: https://heatboard.staging.chauffagistes-btc.fr
@@ -33,6 +32,7 @@ services:
       - chauffagistes-net
       - traefik-public
       - heatboard-staging-internal
+      - pg-staging
     deploy:
       replicas: 1
       placement:
@@ -111,6 +111,8 @@ networks:
   heatboard-staging-internal:
     driver: overlay
     internal: true
+  pg-staging:
+    external: true
   heatboard-staging-db-expose:
     driver: overlay
 
