@@ -11,7 +11,7 @@ services:
       sh -c "
       export DB_PASSWORD=$$(cat /run/secrets/history_server_staging_db_password) &&
       export STATS_API_TOKEN=$$(cat /run/secrets/history_server_staging_stats_api_token) &&
-      python main.py"
+      exec python main.py"
     secrets:
       - history_server_staging_db_password
       - history_server_staging_stats_api_token
