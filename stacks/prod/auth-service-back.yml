@@ -1,12 +1,13 @@
 services:
   app:
-    image: 10.10.0.3:5000/auth-service-back:1.1.2
+    image: 10.10.0.3:5000/auth-service-back:1.2.0
     environment:
       SERVER_PORT: "8080"
-      POSTGRES_DB: auth
       DISCORD_CALLBACK_URL: https://api.auth.chauffagistes-btc.fr/discord/callback
       LIGHTNING_CALLBACK_URL: https://auth.chauffagistes-btc.fr/lightning/callback
       DB_HOST: db
+      DB_USER: auth
+      DB_NAME: auth
       DOMAIN_NAME: .chauffagistes-btc.fr
       DISCORD_CLIENT_ID: "1100450456091766907"
       ENVIRONMENT: production
