@@ -1,0 +1,170 @@
+# Cluster Postgres HA partagé de la prod : une base + un rôle par microservice.
+# 2 nœuds Patroni (db1 sur hugo, db2 sur itrider), DCS = etcd-dcs-prod,
+# HAProxy devant (un par nœud) qui route toujours vers le primaire.
+#
+# - Applis : rejoindre le réseau externe `pg-prod`, DB_HOST=pg-ha-prod_haproxy.
+# - DataGrip : port 5450 sur hugo ou itrider (utilisateur postgres).
+# - Sauvegardes : barman-cloud vers Garage (bucket pg-prod) : WAL en continu
+#   + sauvegarde complète quotidienne (voir pg-ha-entrypoint.sh).
+#
+# Secrets : postgres_prod_password (superuser), pg_ha_prod_replication_password,
+# pg_ha_prod_restapi_password, pg_ha_prod_s3_key_id / pg_ha_prod_s3_secret_key
+# (clé Garage pg-prod).
+
+x-db: &db
+  image: timescale/timescaledb-ha:pg17@sha256:9665079bcf1403aa1751f4139acbb5dae6b458c7653dfd357acd4e7ae0973192
+  entrypoint: ["/pg-ha/entrypoint.sh"]
+  networks:
+    - chauffagistes-net   # etcd et Garage
+    - pg
+  secrets:
+    - source: postgres_prod_password
+      target: superuser_password
+    - source: pg_ha_prod_replication_password
+      target: replication_password
+    - source: pg_ha_prod_restapi_password
+      target: restapi_password
+    - source: pg_ha_prod_s3_key_id
+      target: s3_key_id
+    - source: pg_ha_prod_s3_secret_key
+      target: s3_secret_key
+  configs:
+    - source: pg_ha_prod_entrypoint_v1
+      target: /pg-ha/entrypoint.sh
+      mode: 0555
+    - source: pg_ha_prod_patroni_v1
+      target: /etc/patroni/patroni.yml
+  # /liveness et non /health : /health échoue tant que Postgres ne tourne pas,
+  # donc aussi pendant la copie initiale d'un replica. Swarm tuerait alors la
+  # tâche en pleine copie (et ne la publierait pas dans son DNS).
+  healthcheck:
+    test: ["CMD", "curl", "-sf", "http://localhost:8008/liveness"]
+    interval: 10s
+    timeout: 5s
+    retries: 6
+    start_period: 120s
+  stop_grace_period: 60s
+
+x-db-env: &db-env
+  PATRONI_SCOPE: pg-ha-prod
+  PATRONI_ETCD3_HOSTS: etcd-dcs-prod_dcs1:2379,etcd-dcs-prod_dcs2:2379,etcd-dcs-prod_dcs3:2379
+  BARMAN_ENDPOINT: http://garage:3900
+  BARMAN_DEST: s3://pg-prod/barman
+  BARMAN_SERVER: pg-ha-prod
+  BACKUP_HOUR_UTC: "2"
+  BACKUP_RETENTION_DAYS: "14"
+
+x-db-deploy: &db-deploy
+  replicas: 1
+  update_config:
+    order: stop-first
+  restart_policy:
+    condition: any
+    delay: 5s
+  resources:
+    limits:
+      cpus: "1"
+      memory: 512M
+  labels:
+    - "prometheus.scrape=true"
+    - "prometheus.port=8008"
+
+services:
+  db1:
+    <<: *db
+    hostname: db1
+    environment:
+      <<: *db-env
+      PATRONI_NAME: db1
+      PATRONI_RESTAPI_CONNECT_ADDRESS: db1:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: db1:5432
+    volumes:
+      - db1-data:/home/postgres
+    deploy:
+      <<: *db-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+
+  db2:
+    <<: *db
+    hostname: db2
+    environment:
+      <<: *db-env
+      PATRONI_NAME: db2
+      PATRONI_RESTAPI_CONNECT_ADDRESS: db2:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: db2:5432
+    volumes:
+      - db2-data:/home/postgres
+    deploy:
+      <<: *db-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == itrider
+
+  haproxy:
+    image: haproxy:3.2-alpine
+    networks:
+      - pg
+      - expose   # nécessaire au port publié en mode host (pg est interne)
+    ports:
+      - target: 5432
+        published: 5450
+        protocol: tcp
+        mode: host
+    configs:
+      - source: pg_ha_prod_haproxy_v1
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    deploy:
+      # global : un HAProxy par nœud workload, sans compter les réplicas à la
+      # main. Un nœud absent (panne, maintenance) ne laisse donc pas le service
+      # en dessous de sa cible.
+      mode: global
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: stop-first
+        parallelism: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+
+configs:
+  # Configs Swarm immuables : incrémenter _vN à chaque changement de fichier.
+  pg_ha_prod_entrypoint_v1:
+    file: ../common/pg-ha-entrypoint.sh
+  pg_ha_prod_patroni_v1:
+    file: ../common/pg-ha-patroni.yaml
+  pg_ha_prod_haproxy_v1:
+    file: ../common/pg-ha-haproxy.cfg
+
+volumes:
+  db1-data:
+  db2-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+  pg:
+    name: pg-prod
+    driver: overlay
+    internal: true
+  expose:
+    driver: overlay
+
+secrets:
+  postgres_prod_password:
+    external: true
+  pg_ha_prod_replication_password:
+    external: true
+  pg_ha_prod_restapi_password:
+    external: true
+  pg_ha_prod_s3_key_id:
+    external: true
+  pg_ha_prod_s3_secret_key:
+    external: true
