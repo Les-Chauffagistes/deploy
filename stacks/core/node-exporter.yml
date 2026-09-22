@@ -13,6 +13,10 @@ services:
       - "--collector.systemd.unit-include=^bitcoind\\.service$$"
     volumes:
       - /:/host:ro,rslave
+      # Requis par --collector.systemd : il parle à systemd via D-Bus, pas via
+      # /host. Chemin attendu en dur par node_exporter (godbus), pas configurable
+      # par flag — il faut monter au même chemin dans le conteneur.
+      - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro
     networks:
       - chauffagistes-net
     deploy:
