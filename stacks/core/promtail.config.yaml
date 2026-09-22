@@ -47,3 +47,22 @@ scrape_configs:
           template: '{{ if .level_flat }}{{ .level_flat }}{{ else }}{{ .level_nested }}{{ end }}'
       - labels:
           level:
+
+  # bitcoind tourne en service systemd natif (pas un conteneur) sur le nœud
+  # debian — ce job lit le journal local de chaque nœud (mode: global) mais
+  # ne garde que l'unité bitcoind.service : sur les autres nœuds, qui ne
+  # l'ont pas, le flux reste simplement vide.
+  - job_name: bitcoind-journal
+    journal:
+      max_age: 12h
+      path: /var/log/journal
+      labels:
+        job: systemd-journal
+    relabel_configs:
+      - source_labels: ["__journal__systemd_unit"]
+        target_label: unit
+      - source_labels: ["__journal__hostname"]
+        target_label: node
+      - source_labels: [unit]
+        regex: 'bitcoind\.service'
+        action: keep

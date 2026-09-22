@@ -6,6 +6,11 @@ services:
       - "--path.procfs=/host/proc"
       - "--path.sysfs=/host/sys"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+      # Désactivé par défaut (coût d'énumération de toutes les unités systemd) —
+      # restreint à bitcoind.service pour n'exposer que ce qui nous intéresse,
+      # sur tous les nœuds (mode: global) même ceux qui n'ont pas cette unité.
+      - "--collector.systemd"
+      - "--collector.systemd.unit-include=^bitcoind\\.service$$"
     volumes:
       - /:/host:ro,rslave
     networks:

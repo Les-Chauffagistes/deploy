@@ -3,11 +3,17 @@ services:
     image: grafana/promtail:3.1.1
     command: -config.file=/etc/promtail/promtail.yml
     configs:
-      - source: promtail_conf_v4
+      - source: promtail_conf_v5
         target: /etc/promtail/promtail.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Lecture du journal systemd hôte (pour le job bitcoind-journal). Sur les
+      # nœuds sans /var/log/journal (ex: hôtes non-Linux), Docker monte un
+      # dossier vide côté bind — le lecteur de journal n'y trouve simplement
+      # rien, sans erreur.
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
       # Position de lecture par nœud (mode: global) : sans volume nommé, ce fichier
       # vit dans le rootfs éphémère du conteneur et repart de zéro à chaque
       # redéploiement de promtail, qui rejoue alors tout l'historique des logs
@@ -30,7 +36,7 @@ configs:
   # promtail.config.yaml nécessite un nouveau nom ici ET dans configs: du
   # service promtail ci-dessus (sinon "only updates to Labels are allowed"
   # au déploiement). --prune nettoie l'ancien objet devenu orphelin.
-  promtail_conf_v4:
+  promtail_conf_v5:
     file: ./promtail.config.yaml
 
 volumes:

@@ -67,6 +67,41 @@ groups:
           summary: "Espace disque Garage faible ({{ $labels.volume }})"
           description: "Moins de 10% d'espace disque restant sur le volume {{ $labels.volume }} de Garage — les sauvegardes risquent d'échouer."
 
+  - name: bitcoind
+    rules:
+      - alert: BitcoindServiceFailed
+        # node_systemd_unit_state expose une série par état possible (active,
+        # failed, activating...), valant 0/1 — on cible directement l'état
+        # "failed" plutôt que "active == 0" pour ne pas déclencher pendant un
+        # redémarrage normal (activating/reloading).
+        expr: node_systemd_unit_state{name="bitcoind.service", state="failed"} == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "bitcoind en échec sur {{ $labels.node }}"
+          description: "Le service systemd bitcoind.service est dans l'état failed sur {{ $labels.node }} depuis plus de 2 minutes."
+
+      - alert: BitcoindDiskNotMounted
+        expr: absent(node_filesystem_avail_bytes{node="debian", mountpoint="/mnt/bitcoin"})
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disque bitcoind non monté sur debian"
+          description: "Aucune métrique de système de fichiers pour /mnt/bitcoin sur debian depuis 10 minutes — le disque externe de la blockchain n'est probablement plus monté."
+
+      - alert: BitcoindDiskSpaceLow
+        expr: |
+          node_filesystem_avail_bytes{node="debian", mountpoint="/mnt/bitcoin"}
+            / node_filesystem_size_bytes{node="debian", mountpoint="/mnt/bitcoin"} < 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Espace disque faible pour bitcoind"
+          description: "Moins de 10% d'espace disque restant sur /mnt/bitcoin (nœud debian)."
+
   - name: postgres-ha
     rules:
       - alert: PatroniNoPrimary

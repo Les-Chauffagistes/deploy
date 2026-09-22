@@ -13,6 +13,8 @@ services:
         target: /etc/grafana/provisioning/dashboards/provider.yml
       - source: grafana_dashboard_garage_v1
         target: /etc/grafana/provisioning/dashboards/garage.json
+      - source: grafana_dashboard_bitcoind_v1
+        target: /etc/grafana/provisioning/dashboards/bitcoind.json
     secrets:
       - source: core_grafana_admin_password
         target: grafana_admin_password
@@ -52,6 +54,8 @@ configs:
     file: ./grafana-dashboards.yaml
   grafana_dashboard_garage_v1:
     file: ./garage-dashboard.json
+  grafana_dashboard_bitcoind_v1:
+    file: ./bitcoind-dashboard.json
 
 volumes:
   grafana-data:
