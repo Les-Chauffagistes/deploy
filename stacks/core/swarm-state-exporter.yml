@@ -10,7 +10,7 @@ services:
     image: docker:26.1-cli
     entrypoint: ["/bin/sh", "/scripts/swarm-state-exporter.sh"]
     configs:
-      - source: swarm_state_exporter_script_v1
+      - source: swarm_state_exporter_script_v2
         target: /scripts/swarm-state-exporter.sh
         mode: 0555
     volumes:
@@ -31,7 +31,7 @@ services:
         condition: on-failure
 
 configs:
-  swarm_state_exporter_script_v1:
+  swarm_state_exporter_script_v2:
     file: ./swarm-state-exporter.sh
 
 volumes:
