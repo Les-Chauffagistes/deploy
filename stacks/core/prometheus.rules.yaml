@@ -23,6 +23,30 @@ groups:
           summary: "Cible injoignable : {{ $labels.job }} sur {{ $labels.instance }}"
           description: "Prometheus n'arrive plus à scraper {{ $labels.job }} ({{ $labels.instance }}) depuis 2 minutes — le nœud ou le service est probablement down."
 
+  - name: swarm-nodes
+    rules:
+      - alert: SwarmNodeDown
+        # swarm_node_ready vient de swarm-state-exporter.yml (docker node ls
+        # côté manager) — contrairement à up{job="node-exporter"}, ça couvre
+        # aussi un nœud Down/Drain qui n'a plus aucune tâche du tout, donc
+        # rien à scraper directement.
+        expr: swarm_node_ready == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nœud Swarm down : {{ $labels.node }}"
+          description: "{{ $labels.node }} n'est plus Ready dans le cluster Swarm (docker node ls) depuis plus de 2 minutes."
+
+      - alert: SwarmNodeDrained
+        expr: swarm_node_active == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nœud Swarm indisponible pour de nouvelles tâches : {{ $labels.node }}"
+          description: "{{ $labels.node }} est en Pause ou Drain depuis plus de 5 minutes — aucune nouvelle tâche ne peut y être planifiée."
+
   - name: swarm-resources
     rules:
       - alert: ContainerMemoryNearLimit

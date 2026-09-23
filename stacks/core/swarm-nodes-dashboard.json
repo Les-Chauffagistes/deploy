@@ -8,7 +8,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "30s",
   "time": {
     "from": "now-6h",
@@ -25,7 +25,7 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(up{job=\"node-exporter\"}, node)",
+          "query": "label_values(swarm_node_info, node)",
           "refId": "node-variable"
         },
         "refresh": 2,
@@ -52,7 +52,7 @@
       "id": 3,
       "type": "stat",
       "title": "Nœuds Swarm",
-      "description": "Nœuds qui répondent à node-exporter (mode global sur tous les nœuds, y compris debian, hors rotation des déploiements).",
+      "description": "Basé sur swarm_node_ready / swarm_node_info (swarm-state-exporter, docker node ls côté manager) — compte aussi les nœuds Down/Drain, contrairement à up{job=\"node-exporter\"} qui ne voit que les nœuds où l'agent tourne encore.",
       "gridPos": {
         "h": 4,
         "w": 4,
@@ -65,11 +65,11 @@
       },
       "targets": [
         {
-          "expr": "count(up{job=\"node-exporter\"} == 1)",
-          "legendFormat": "en ligne"
+          "expr": "count(swarm_node_ready == 1)",
+          "legendFormat": "Ready"
         },
         {
-          "expr": "count(up{job=\"node-exporter\"})",
+          "expr": "count(swarm_node_info)",
           "legendFormat": "total"
         }
       ],
@@ -338,7 +338,7 @@
     {
       "id": 9,
       "type": "row",
-      "title": "Répartition du workload",
+      "title": "État Swarm",
       "gridPos": {
         "h": 1,
         "w": 24,
@@ -349,13 +349,72 @@
     {
       "id": 10,
       "type": "table",
+      "title": "Nœuds Swarm (docker node ls)",
+      "description": "Vue directe de l'état Swarm de chaque nœud (statut, disponibilité, rôle manager), y compris les nœuds Down/Drain qui n'exposent plus aucune métrique node-exporter/cAdvisor. Source : swarm-state-exporter (docker node ls côté manager).",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "swarm_node_info",
+          "format": "table",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "options": {
+        "showHeader": true
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true
+            },
+            "renameByName": {
+              "node": "Nœud",
+              "status": "Statut",
+              "availability": "Disponibilité",
+              "manager_status": "Rôle manager"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Répartition du workload",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
       "title": "Conteneurs par nœud et service",
-      "description": "Nombre de tâches Swarm actives par nœud et par service — vue d'ensemble du placement du workload.",
+      "description": "Nombre de tâches Swarm actives par nœud et par service — vue d'ensemble du placement du workload. Un nœud Down/Drain n'apparaît pas ici (plus aucun conteneur dessus) : voir la table \"Nœuds Swarm\" ci-dessus pour son état.",
       "gridPos": {
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 6
+        "y": 15
       },
       "datasource": {
         "type": "prometheus",
@@ -392,7 +451,7 @@
       ]
     },
     {
-      "id": 11,
+      "id": 13,
       "type": "row",
       "title": "Nœud : $node",
       "collapsed": true,
@@ -401,16 +460,17 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 16
+        "y": 25
       },
       "panels": [
         {
           "id": 101,
           "type": "stat",
-          "title": "État",
+          "title": "Agent (node-exporter)",
+          "description": "up{job=\"node-exporter\"} — l'agent de métriques répond-il sur ce nœud ? Absent (pas de série) si le nœud est Down/Drain, node-exporter y étant en mode global (aucune tâche possible dessus).",
           "gridPos": {
             "h": 4,
-            "w": 4,
+            "w": 3,
             "x": 0,
             "y": 0
           },
@@ -466,11 +526,131 @@
         {
           "id": 102,
           "type": "stat",
+          "title": "Swarm : Ready",
+          "description": "Status.State du nœud côté API Swarm (docker node ls) — reste renseigné même si l'agent node-exporter est down.",
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 3,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "swarm_node_ready{node=\"$node\"}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "Not Ready"
+                    },
+                    "1": {
+                      "text": "Ready"
+                    }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          }
+        },
+        {
+          "id": 103,
+          "type": "stat",
+          "title": "Swarm : Disponibilité",
+          "description": "Availability du nœud (Active / Pause / Drain) — 0 si le nœud n'accepte plus de nouvelles tâches.",
+          "gridPos": {
+            "h": 4,
+            "w": 3,
+            "x": 6,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "swarm_node_active{node=\"$node\"}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "Pause / Drain"
+                    },
+                    "1": {
+                      "text": "Active"
+                    }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          }
+        },
+        {
+          "id": 104,
+          "type": "stat",
           "title": "Conteneurs actifs",
           "gridPos": {
             "h": 4,
-            "w": 4,
-            "x": 4,
+            "w": 3,
+            "x": 9,
             "y": 0
           },
           "datasource": {
@@ -507,13 +687,13 @@
           }
         },
         {
-          "id": 103,
+          "id": 105,
           "type": "gauge",
           "title": "CPU",
           "gridPos": {
             "h": 4,
-            "w": 4,
-            "x": 8,
+            "w": 3,
+            "x": 12,
             "y": 0
           },
           "datasource": {
@@ -555,13 +735,13 @@
           }
         },
         {
-          "id": 104,
+          "id": 106,
           "type": "gauge",
           "title": "Mémoire",
           "gridPos": {
             "h": 4,
-            "w": 4,
-            "x": 12,
+            "w": 3,
+            "x": 15,
             "y": 0
           },
           "datasource": {
@@ -603,14 +783,14 @@
           }
         },
         {
-          "id": 105,
+          "id": 107,
           "type": "gauge",
           "title": "Disque (/)",
           "description": "Aligné sur l'alerte NodeDiskSpaceLow (mountpoint=\"/host\", < 10% libre).",
           "gridPos": {
             "h": 4,
-            "w": 4,
-            "x": 16,
+            "w": 3,
+            "x": 18,
             "y": 0
           },
           "datasource": {
@@ -652,13 +832,13 @@
           }
         },
         {
-          "id": 106,
+          "id": 108,
           "type": "stat",
           "title": "Charge (load1)",
           "gridPos": {
             "h": 4,
-            "w": 4,
-            "x": 20,
+            "w": 3,
+            "x": 21,
             "y": 0
           },
           "datasource": {
@@ -695,7 +875,7 @@
           }
         },
         {
-          "id": 107,
+          "id": 109,
           "type": "timeseries",
           "title": "CPU dans le temps",
           "gridPos": {
@@ -723,7 +903,7 @@
           }
         },
         {
-          "id": 108,
+          "id": 110,
           "type": "timeseries",
           "title": "Mémoire dans le temps",
           "gridPos": {
@@ -751,7 +931,7 @@
           }
         },
         {
-          "id": 109,
+          "id": 111,
           "type": "timeseries",
           "title": "Charge (load average)",
           "gridPos": {
@@ -785,7 +965,7 @@
           }
         },
         {
-          "id": 110,
+          "id": 112,
           "type": "timeseries",
           "title": "Réseau (in/out)",
           "gridPos": {

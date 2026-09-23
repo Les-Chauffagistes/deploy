@@ -1,0 +1,45 @@
+# Expose l'état Swarm des nœuds (docker node ls) en métriques Prometheus via
+# le textfile collector de node-exporter — voir swarm-state-exporter.sh pour
+# le détail du pourquoi (node-exporter/cAdvisor, en mode global, n'ont plus
+# aucune tâche du tout sur un nœud Down/Drain, donc rien à scraper).
+#
+# Doit tourner sur un manager : seul un manager voit la liste complète des
+# nœuds via l'API Swarm.
+services:
+  swarm-state-exporter:
+    image: docker:26.1-cli
+    entrypoint: ["/bin/sh", "/scripts/swarm-state-exporter.sh"]
+    configs:
+      - source: swarm_state_exporter_script_v1
+        target: /scripts/swarm-state-exporter.sh
+        mode: 0555
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - node-exporter-textfile:/textfile
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+      restart_policy:
+        condition: on-failure
+
+configs:
+  swarm_state_exporter_script_v1:
+    file: ./swarm-state-exporter.sh
+
+volumes:
+  # Même volume que celui monté par node-exporter (node-exporter.yml) — les
+  # deux tâches doivent tourner sur le même nœud (le manager) pour que ce
+  # volume local Docker soit effectivement partagé.
+  node-exporter-textfile:
+
+networks:
+  chauffagistes-net:
+    external: true

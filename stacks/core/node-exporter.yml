@@ -12,12 +12,19 @@ services:
       # n'ont pas ces unités (toutes deux natives, hors Swarm, sur debian).
       - "--collector.systemd"
       - "--collector.systemd.unit-include=^(bitcoind|ckpool)\\.service$$"
+      # Lit les métriques écrites par swarm-state-exporter.yml (état Swarm des
+      # nœuds, absent des collectors natifs). Le volume n'est réellement rempli
+      # que sur le manager (seul nœud où tourne swarm-state-exporter) ; sur les
+      # autres, le répertoire reste vide — sans effet, node-exporter tolère un
+      # textfile directory vide.
+      - "--collector.textfile.directory=/textfile"
     volumes:
       - /:/host:ro,rslave
       # Requis par --collector.systemd : il parle à systemd via D-Bus, pas via
       # /host. Chemin attendu en dur par node_exporter (godbus), pas configurable
       # par flag — il faut monter au même chemin dans le conteneur.
       - /var/run/dbus/system_bus_socket:/var/run/dbus/system_bus_socket:ro
+      - node-exporter-textfile:/textfile
     networks:
       - chauffagistes-net
     deploy:
@@ -28,6 +35,10 @@ services:
           memory: 128M
       restart_policy:
         condition: on-failure
+
+volumes:
+  # Partagé avec swarm-state-exporter.yml (même nom) — voir ce fichier.
+  node-exporter-textfile:
 
 networks:
   chauffagistes-net:
