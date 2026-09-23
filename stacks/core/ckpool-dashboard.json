@@ -1,0 +1,85 @@
+{
+  "uid": "ckpool",
+  "title": "CKPool (debian)",
+  "tags": ["bitcoin", "debian", "ckpool"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    { "id": 1, "type": "row", "title": "État", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Service ckpool",
+      "description": "État systemd du service ckpool sur debian. Indépendant du fait qu'un mineur soit connecté ou non — c'est un serveur de secours, il peut rester sans mineur pendant de longues périodes sans que ce soit anormal.",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "node_systemd_unit_state{name=\"ckpool.service\", state=\"active\"}", "legendFormat": "actif" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "Arrêté / échec" }, "1": { "text": "Actif" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Service bitcoind",
+      "description": "ckpool dépend entièrement de ce process pour son RPC et son flux ZMQ — voir aussi le dashboard \"Bitcoind (debian)\".",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "node_systemd_unit_state{name=\"bitcoind.service\", state=\"active\"}", "legendFormat": "actif" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "Arrêté / échec" }, "1": { "text": "Actif" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "RPC bitcoind joignable",
+      "description": "Via bitcoind-exporter (stacks/core/bitcoind-exporter.yml), qui interroge le même RPC bitcoind (192.168.1.204:8332) que ckpool, depuis un autre nœud du réseau chauffagistes-net. Un scrape en échec indique que le RPC n'est joignable depuis le LAN — la même chose que rencontrerait ckpool.",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "up{swarm_service=\"core_bitcoind-exporter\"}", "legendFormat": "up" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "Injoignable" }, "1": { "text": "Joignable" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    { "id": 20, "type": "row", "title": "Logs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 } },
+    {
+      "id": 21,
+      "type": "logs",
+      "title": "Logs ckpool (stdout / stderr / ckpool.log)",
+      "description": "Preuve directe de fonctionnement même sans mineur connecté : ckpool redemande un nouveau template de bloc à bitcoind toutes les 30s (update_interval) et à chaque nouveau bloc réseau (\"Broadcast updated stratum base\"), qu'il y ait un mineur ou non. Une absence prolongée de ces lignes, ou des \"Failed to connect socket\" / \"CRITICAL: No bitcoinds active!\" répétés, signale une perte de connexion au RPC.",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [{ "expr": "{job=\"ckpool\"}" }],
+      "options": { "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true, "enableLogDetails": true }
+    }
+  ]
+}

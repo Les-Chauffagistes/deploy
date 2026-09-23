@@ -3,7 +3,7 @@ services:
     image: grafana/promtail:3.1.1
     command: -config.file=/etc/promtail/promtail.yml
     configs:
-      - source: promtail_conf_v5
+      - source: promtail_conf_v6
         target: /etc/promtail/promtail.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -14,6 +14,10 @@ services:
       # rien, sans erreur.
       - /var/log/journal:/var/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
+      # Pour le job ckpool-logs (voir promtail.config.yaml) : ckpool écrit ses
+      # logs dans des fichiers plutôt que le journal. N'existe que sur debian ;
+      # sur les autres nœuds (mode: global), Docker monte un dossier vide.
+      - /srv/ckpool/logs:/var/log/ckpool:ro
       # Position de lecture par nœud (mode: global) : sans volume nommé, ce fichier
       # vit dans le rootfs éphémère du conteneur et repart de zéro à chaque
       # redéploiement de promtail, qui rejoue alors tout l'historique des logs
@@ -36,7 +40,7 @@ configs:
   # promtail.config.yaml nécessite un nouveau nom ici ET dans configs: du
   # service promtail ci-dessus (sinon "only updates to Labels are allowed"
   # au déploiement). --prune nettoie l'ancien objet devenu orphelin.
-  promtail_conf_v5:
+  promtail_conf_v6:
     file: ./promtail.config.yaml
 
 volumes:

@@ -66,3 +66,18 @@ scrape_configs:
       - source_labels: [unit]
         regex: 'bitcoind\.service'
         action: keep
+
+  # ckpool tourne aussi en service systemd natif sur debian, mais contrairement
+  # à bitcoind son unit redirige stdout/stderr directement vers des fichiers
+  # (StandardOutput/StandardError=append:...) plutôt que vers le journal — le
+  # job ci-dessus ne le verrait donc jamais. On lit ces fichiers directement ;
+  # promtail étiquette chaque flux avec son nom de fichier automatiquement.
+  # Sur les nœuds sans /srv/ckpool/logs, Docker monte un bind vide (même
+  # comportement que /var/log/journal plus haut) : le flux reste simplement vide.
+  - job_name: ckpool-logs
+    static_configs:
+      - targets: ["localhost"]
+        labels:
+          job: ckpool
+          node: debian
+          __path__: /var/log/ckpool/*.log
