@@ -30,13 +30,17 @@ groups:
         # côté manager) — contrairement à up{job="node-exporter"}, ça couvre
         # aussi un nœud Down/Drain qui n'a plus aucune tâche du tout, donc
         # rien à scraper directement.
+        # Label swarm_node (pas "node") : le job node-exporter pose déjà un
+        # label externe "node" (relabel_configs, hostname de la tâche qui sert
+        # le scrape — toujours le manager ici) qui écraserait silencieusement
+        # celui du textfile (renommé exported_node) via honor_labels=false.
         expr: swarm_node_ready == 0
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Nœud Swarm down : {{ $labels.node }}"
-          description: "{{ $labels.node }} n'est plus Ready dans le cluster Swarm (docker node ls) depuis plus de 2 minutes."
+          summary: "Nœud Swarm down : {{ $labels.swarm_node }}"
+          description: "{{ $labels.swarm_node }} n'est plus Ready dans le cluster Swarm (docker node ls) depuis plus de 2 minutes."
 
       - alert: SwarmNodeDrained
         expr: swarm_node_active == 0
@@ -44,8 +48,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Nœud Swarm indisponible pour de nouvelles tâches : {{ $labels.node }}"
-          description: "{{ $labels.node }} est en Pause ou Drain depuis plus de 5 minutes — aucune nouvelle tâche ne peut y être planifiée."
+          summary: "Nœud Swarm indisponible pour de nouvelles tâches : {{ $labels.swarm_node }}"
+          description: "{{ $labels.swarm_node }} est en Pause ou Drain depuis plus de 5 minutes — aucune nouvelle tâche ne peut y être planifiée."
 
   - name: swarm-resources
     rules:

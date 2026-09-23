@@ -27,10 +27,10 @@ while true; do
         [ "$status" = "Ready" ] && ready=1
         active=0
         [ "$availability" = "Active" ] && active=1
-        printf 'swarm_node_info{node="%s",status="%s",availability="%s",manager_status="%s"} 1\n' \
+        printf 'swarm_node_info{swarm_node="%s",status="%s",availability="%s",manager_status="%s"} 1\n' \
           "$hostname" "$status" "$availability" "$manager_status"
-        printf 'swarm_node_ready{node="%s"} %s\n' "$hostname" "$ready"
-        printf 'swarm_node_active{node="%s"} %s\n' "$hostname" "$active"
+        printf 'swarm_node_ready{swarm_node="%s"} %s\n' "$hostname" "$ready"
+        printf 'swarm_node_active{swarm_node="%s"} %s\n' "$hostname" "$active"
       done
   } > "$TMP_FILE"
   # Écriture atomique : node-exporter relit périodiquement le répertoire,

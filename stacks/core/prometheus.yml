@@ -43,7 +43,7 @@ configs:
     # que prometheus.rules.yaml change, il faut bumper ce nom pour que Swarm
     # crée un nouvel objet plutôt que d'essayer (et échouer) à mettre à jour
     # le contenu de l'ancien.
-    name: prometheus_rules_v9
+    name: prometheus_rules_v10
 
 volumes:
   prometheus-data:

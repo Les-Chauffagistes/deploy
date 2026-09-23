@@ -8,7 +8,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 3,
   "refresh": "30s",
   "time": {
     "from": "now-6h",
@@ -25,7 +25,7 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(swarm_node_info, node)",
+          "query": "label_values(swarm_node_info, swarm_node)",
           "refId": "node-variable"
         },
         "refresh": 2,
@@ -385,10 +385,10 @@
               "__name__": true
             },
             "renameByName": {
-              "node": "Nœud",
               "status": "Statut",
               "availability": "Disponibilité",
-              "manager_status": "Rôle manager"
+              "manager_status": "Rôle manager",
+              "swarm_node": "Nœud"
             }
           }
         }
@@ -540,7 +540,7 @@
           },
           "targets": [
             {
-              "expr": "swarm_node_ready{node=\"$node\"}"
+              "expr": "swarm_node_ready{swarm_node=\"$node\"}"
             }
           ],
           "fieldConfig": {
@@ -600,7 +600,7 @@
           },
           "targets": [
             {
-              "expr": "swarm_node_active{node=\"$node\"}"
+              "expr": "swarm_node_active{swarm_node=\"$node\"}"
             }
           ],
           "fieldConfig": {
