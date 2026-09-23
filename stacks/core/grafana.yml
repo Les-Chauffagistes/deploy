@@ -17,6 +17,8 @@ services:
         target: /etc/grafana/provisioning/dashboards/bitcoind.json
       - source: grafana_dashboard_ckpool_v1
         target: /etc/grafana/provisioning/dashboards/ckpool.json
+      - source: grafana_dashboard_swarm_nodes_v1
+        target: /etc/grafana/provisioning/dashboards/swarm-nodes.json
     secrets:
       - source: core_grafana_admin_password
         target: grafana_admin_password
@@ -60,6 +62,8 @@ configs:
     file: ./bitcoind-dashboard.json
   grafana_dashboard_ckpool_v1:
     file: ./ckpool-dashboard.json
+  grafana_dashboard_swarm_nodes_v1:
+    file: ./swarm-nodes-dashboard.json
 
 volumes:
   grafana-data:

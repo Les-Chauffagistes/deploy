@@ -1,0 +1,820 @@
+{
+  "uid": "swarm-nodes",
+  "title": "Swarm — Nœuds",
+  "tags": [
+    "swarm",
+    "infra",
+    "nodes"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "node",
+        "label": "Nœud",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "query": {
+          "query": "label_values(up{job=\"node-exporter\"}, node)",
+          "refId": "node-variable"
+        },
+        "refresh": 2,
+        "sort": 1,
+        "multi": false,
+        "includeAll": false,
+        "current": {}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 2,
+      "type": "row",
+      "title": "Vue d'ensemble",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Nœuds Swarm",
+      "description": "Nœuds qui répondent à node-exporter (mode global sur tous les nœuds, y compris debian, hors rotation des déploiements).",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "count(up{job=\"node-exporter\"} == 1)",
+          "legendFormat": "en ligne"
+        },
+        {
+          "expr": "count(up{job=\"node-exporter\"})",
+          "legendFormat": "total"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Conteneurs actifs (cluster)",
+      "description": "Toutes tâches Swarm confondues, tous nœuds.",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "count(container_start_time_seconds{container_label_com_docker_swarm_service_name!=\"\"})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Services Swarm distincts",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "count(count by (container_label_com_docker_swarm_service_name) (container_start_time_seconds{container_label_com_docker_swarm_service_name!=\"\"}))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "CPU moyen (cluster)",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Mémoire moyenne (cluster)",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "100 * (1 - (avg(node_memory_MemAvailable_bytes) / avg(node_memory_MemTotal_bytes)))"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Charge moyenne (load1, cluster)",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "avg(node_load1)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "Répartition du workload",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Conteneurs par nœud et service",
+      "description": "Nombre de tâches Swarm actives par nœud et par service — vue d'ensemble du placement du workload.",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "count by (node, container_label_com_docker_swarm_service_name) (container_start_time_seconds{container_label_com_docker_swarm_service_name!=\"\"})",
+          "format": "table",
+          "instant": true,
+          "range": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "options": {
+        "showHeader": true
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "node": "Nœud",
+              "container_label_com_docker_swarm_service_name": "Service",
+              "Value": "Conteneurs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Nœud : $node",
+      "collapsed": true,
+      "repeat": "node",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      },
+      "panels": [
+        {
+          "id": 101,
+          "type": "stat",
+          "title": "État",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 0,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "up{job=\"node-exporter\", node=\"$node\"}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {
+                      "text": "Down"
+                    },
+                    "1": {
+                      "text": "Up"
+                    }
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 1
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          }
+        },
+        {
+          "id": 102,
+          "type": "stat",
+          "title": "Conteneurs actifs",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 4,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "count(container_start_time_seconds{node=\"$node\", container_label_com_docker_swarm_service_name!=\"\"})"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 0,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          }
+        },
+        {
+          "id": 103,
+          "type": "gauge",
+          "title": "CPU",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 8,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "100 - (avg(rate(node_cpu_seconds_total{node=\"$node\", mode=\"idle\"}[5m])) * 100)"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 70
+                  },
+                  {
+                    "color": "red",
+                    "value": 90
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          }
+        },
+        {
+          "id": 104,
+          "type": "gauge",
+          "title": "Mémoire",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 12,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "100 * (1 - (node_memory_MemAvailable_bytes{node=\"$node\"} / node_memory_MemTotal_bytes{node=\"$node\"}))"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 70
+                  },
+                  {
+                    "color": "red",
+                    "value": 90
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          }
+        },
+        {
+          "id": 105,
+          "type": "gauge",
+          "title": "Disque (/)",
+          "description": "Aligné sur l'alerte NodeDiskSpaceLow (mountpoint=\"/host\", < 10% libre).",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 16,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "100 * (1 - (node_filesystem_avail_bytes{node=\"$node\", mountpoint=\"/host\"} / node_filesystem_size_bytes{node=\"$node\", mountpoint=\"/host\"}))"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "orange",
+                    "value": 80
+                  },
+                  {
+                    "color": "red",
+                    "value": 90
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          }
+        },
+        {
+          "id": 106,
+          "type": "stat",
+          "title": "Charge (load1)",
+          "gridPos": {
+            "h": 4,
+            "w": 4,
+            "x": 20,
+            "y": 0
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "node_load1{node=\"$node\"}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 2,
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "blue",
+                    "value": null
+                  }
+                ]
+              }
+            }
+          },
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ]
+            }
+          }
+        },
+        {
+          "id": 107,
+          "type": "timeseries",
+          "title": "CPU dans le temps",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "100 - (avg(rate(node_cpu_seconds_total{node=\"$node\", mode=\"idle\"}[5m])) * 100)",
+              "legendFormat": "CPU"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 108,
+          "type": "timeseries",
+          "title": "Mémoire dans le temps",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 4
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "100 * (1 - (node_memory_MemAvailable_bytes{node=\"$node\"} / node_memory_MemTotal_bytes{node=\"$node\"}))",
+              "legendFormat": "mémoire"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 109,
+          "type": "timeseries",
+          "title": "Charge (load average)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 0,
+            "y": 12
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "node_load1{node=\"$node\"}",
+              "legendFormat": "1 min"
+            },
+            {
+              "expr": "node_load5{node=\"$node\"}",
+              "legendFormat": "5 min"
+            },
+            {
+              "expr": "node_load15{node=\"$node\"}",
+              "legendFormat": "15 min"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "decimals": 2
+            }
+          }
+        },
+        {
+          "id": 110,
+          "type": "timeseries",
+          "title": "Réseau (in/out)",
+          "gridPos": {
+            "h": 8,
+            "w": 12,
+            "x": 12,
+            "y": 12
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "targets": [
+            {
+              "expr": "sum by (device) (rate(node_network_receive_bytes_total{node=\"$node\", device!=\"lo\"}[5m]))",
+              "legendFormat": "{{device}} — reçu"
+            },
+            {
+              "expr": "-sum by (device) (rate(node_network_transmit_bytes_total{node=\"$node\", device!=\"lo\"}[5m]))",
+              "legendFormat": "{{device}} — émis"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "Bps"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
