@@ -102,6 +102,18 @@ groups:
           summary: "Espace disque faible pour bitcoind"
           description: "Moins de 10% d'espace disque restant sur /mnt/bitcoin (nœud debian)."
 
+      - alert: BitcoindNoPeers
+        # bitcoin_peers vient de bitcoind-exporter (stacks/core/bitcoind-exporter.yml)
+        # — absent() couvre aussi le cas où l'exporter lui-même est down, pas
+        # seulement 0 pair.
+        expr: absent(bitcoin_peers) or bitcoin_peers == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "bitcoind n'a plus aucun pair"
+          description: "Aucune connexion P2P (ou plus de métrique bitcoin_peers) depuis 5 minutes — vérifier la connectivité réseau, le pare-feu, ou le service bitcoind-exporter."
+
   - name: postgres-ha
     rules:
       - alert: PatroniNoPrimary

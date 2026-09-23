@@ -28,17 +28,37 @@
       },
       "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
     },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Pairs connectés (P2P)",
+      "description": "Via bitcoind-exporter (stacks/core/bitcoind-exporter.yml), qui interroge le RPC de bitcoind (getpeerinfo/getnetworkinfo).",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "bitcoin_conn_in", "legendFormat": "inbound" },
+        { "expr": "bitcoin_conn_out", "legendFormat": "outbound" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "decimals": 0,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 1 }, { "color": "green", "value": 4 }] }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "horizontal" }
+    },
 
     { "id": 30, "type": "row", "title": "Synchronisation", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 } },
     {
       "id": 31,
       "type": "stat",
       "title": "Bloc courant",
-      "description": "Hauteur extraite de la dernière ligne UpdateTip (journal systemd de bitcoind) — pas de RPC exposé côté monitoring, la source est le log.",
+      "description": "Via bitcoind-exporter (getblockchaininfo).",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 6 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "last_over_time({job=\"systemd-journal\", unit=\"bitcoind.service\"} |= \"UpdateTip\" | regexp `height=(?P<height>\\d+)` | unwrap height [$__range])", "legendFormat": "height" }
+        { "expr": "bitcoin_blocks", "legendFormat": "height" }
       ],
       "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 } },
       "options": { "colorMode": "none", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
@@ -47,11 +67,11 @@
       "id": 32,
       "type": "stat",
       "title": "Progression de synchro",
-      "description": "verificationprogress extrait de la dernière ligne UpdateTip. Peut légèrement dépasser l'avancement réel en toute fin de synchro (l'estimation du log utilise le temps entre blocs, pas la hauteur du tip réseau).",
+      "description": "Via bitcoind-exporter (getblockchaininfo.verificationprogress).",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 6 },
-      "datasource": { "type": "loki", "uid": "loki" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "last_over_time({job=\"systemd-journal\", unit=\"bitcoind.service\"} |= \"UpdateTip\" | regexp `progress=(?P<progress>[0-9.]+)` | unwrap progress [$__range])", "legendFormat": "progress" }
+        { "expr": "bitcoin_verification_progress", "legendFormat": "progress" }
       ],
       "fieldConfig": {
         "defaults": {
