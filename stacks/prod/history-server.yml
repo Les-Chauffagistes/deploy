@@ -24,7 +24,7 @@ services:
     deploy:
       placement:
         constraints:
-          - node.labels.worload == true
+          - node.labels.workload == true
       update_config:
         order: start-first
         monitor: 60s
