@@ -81,3 +81,10 @@ scrape_configs:
           job: ckpool
           node: debian
           __path__: /var/log/ckpool/*.log
+          # stdout.log est la barre de statut que ckpool réécrit chaque seconde
+          # avec \r et [2K : le fichier ne contient aucun saut de ligne (14 Mo
+          # mesurés pour 0 ligne au sens de wc -l). Promtail le lisait donc en
+          # entier sans jamais qu'une ligne n'atteigne Loki (seuls ckpool.log et
+          # stderr.log y apparaissent), pour un coût CPU/mémoire bien réel. Les
+          # messages utiles sont de toute façon tous dans ckpool.log.
+          __path_exclude__: /var/log/ckpool/stdout.log
