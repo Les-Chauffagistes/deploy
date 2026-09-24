@@ -3,21 +3,19 @@ services:
     image: grafana/promtail:3.1.1
     command: -config.file=/etc/promtail/promtail.yml
     configs:
-      - source: promtail_conf_v7
+      - source: promtail_conf_v8
         target: /etc/promtail/promtail.yml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      # Lecture du journal systemd hôte (pour le job bitcoind-journal). Sur les
-      # nœuds sans /var/log/journal (ex: hôtes non-Linux), Docker monte un
-      # dossier vide côté bind — le lecteur de journal n'y trouve simplement
-      # rien, sans erreur.
-      - /var/log/journal:/var/log/journal:ro
-      - /etc/machine-id:/etc/machine-id:ro
-      # Pour le job ckpool-logs (voir promtail.config.yaml) : ckpool écrit ses
-      # logs dans des fichiers plutôt que le journal. N'existe que sur debian ;
-      # sur les autres nœuds (mode: global), Docker monte un dossier vide.
-      - /srv/ckpool/logs:/var/log/ckpool:ro
+      # Ce service est `global` : il ne doit monter que des chemins présents sur
+      # TOUS les nœuds. Swarm rejette une tâche dont le bind source est absent
+      # (et l'option `bind: create_host_path` de la spec Compose n'est pas
+      # honorée par `docker stack deploy` — vérifié sur le moteur 26.1.5), ce qui
+      # fait tomber le service à 1 réplica sans autre signe qu'un `docker service
+      # ls` à 1/N. Les chemins propres au nœud bitcoind (journal systemd, logs
+      # ckpool) sont donc collectés par promtail-host.yml.
+      #
       # Position de lecture par nœud (mode: global) : sans volume nommé, ce fichier
       # vit dans le rootfs éphémère du conteneur et repart de zéro à chaque
       # redéploiement de promtail, qui rejoue alors tout l'historique des logs
@@ -40,7 +38,7 @@ configs:
   # promtail.config.yaml nécessite un nouveau nom ici ET dans configs: du
   # service promtail ci-dessus (sinon "only updates to Labels are allowed"
   # au déploiement). --prune nettoie l'ancien objet devenu orphelin.
-  promtail_conf_v7:
+  promtail_conf_v8:
     file: ./promtail.config.yaml
 
 volumes:

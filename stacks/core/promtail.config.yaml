@@ -8,6 +8,11 @@ positions:
 clients:
   - url: http://loki:3100/loki/api/v1/push
 
+# Logs des conteneurs Swarm, sur tous les nœuds (mode: global). Les logs des
+# services systemd natifs du nœud bitcoind (bitcoind, ckpool) sont collectés
+# par un promtail distinct — voir promtail-host.yml : leurs binds n'existent
+# que sur ce nœud, et un service `global` qui les monte est rejeté partout
+# ailleurs.
 scrape_configs:
   - job_name: swarm-containers
     docker_sd_configs:
@@ -47,44 +52,3 @@ scrape_configs:
           template: '{{ if .level_flat }}{{ .level_flat }}{{ else }}{{ .level_nested }}{{ end }}'
       - labels:
           level:
-
-  # bitcoind tourne en service systemd natif (pas un conteneur) sur le nœud
-  # debian — ce job lit le journal local de chaque nœud (mode: global) mais
-  # ne garde que l'unité bitcoind.service : sur les autres nœuds, qui ne
-  # l'ont pas, le flux reste simplement vide.
-  - job_name: bitcoind-journal
-    journal:
-      max_age: 12h
-      path: /var/log/journal
-      labels:
-        job: systemd-journal
-    relabel_configs:
-      - source_labels: ["__journal__systemd_unit"]
-        target_label: unit
-      - source_labels: ["__journal__hostname"]
-        target_label: node
-      - source_labels: [unit]
-        regex: 'bitcoind\.service'
-        action: keep
-
-  # ckpool tourne aussi en service systemd natif sur debian, mais contrairement
-  # à bitcoind son unit redirige stdout/stderr directement vers des fichiers
-  # (StandardOutput/StandardError=append:...) plutôt que vers le journal — le
-  # job ci-dessus ne le verrait donc jamais. On lit ces fichiers directement ;
-  # promtail étiquette chaque flux avec son nom de fichier automatiquement.
-  # Sur les nœuds sans /srv/ckpool/logs, Docker monte un bind vide (même
-  # comportement que /var/log/journal plus haut) : le flux reste simplement vide.
-  - job_name: ckpool-logs
-    static_configs:
-      - targets: ["localhost"]
-        labels:
-          job: ckpool
-          node: debian
-          __path__: /var/log/ckpool/*.log
-          # stdout.log est la barre de statut que ckpool réécrit chaque seconde
-          # avec \r et [2K : le fichier ne contient aucun saut de ligne (14 Mo
-          # mesurés pour 0 ligne au sens de wc -l). Promtail le lisait donc en
-          # entier sans jamais qu'une ligne n'atteigne Loki (seuls ckpool.log et
-          # stderr.log y apparaissent), pour un coût CPU/mémoire bien réel. Les
-          # messages utiles sont de toute façon tous dans ckpool.log.
-          __path_exclude__: /var/log/ckpool/stdout.log

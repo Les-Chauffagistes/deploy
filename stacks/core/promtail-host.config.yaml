@@ -1,0 +1,72 @@
+# Promtail dédié aux services systemd natifs du nœud bitcoind (bitcoind, ckpool),
+# qui ne tournent pas en conteneur et ne sont donc pas vus par le service
+# discovery Docker du promtail global (promtail.config.yaml).
+#
+# Pourquoi un service séparé plutôt que ces jobs dans le promtail `global` :
+# /var/log/journal et /srv/ckpool/logs n'existent que sur ce nœud, et Swarm
+# REJETTE une tâche dont un bind source est absent — le service global tombait
+# alors à 1 réplica, sans autre symptôme qu'un `docker service ls` à 1/N, et on
+# perdait les logs de tous les conteneurs des autres nœuds. L'option
+# `bind: create_host_path: true` de la spec Compose ne rattrape pas le coup :
+# elle n'est pas honorée par `docker stack deploy` (vérifié, moteur 26.1.5).
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /positions/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # bitcoind logue dans le journal systemd : on lit le journal local et on ne
+  # garde que son unité.
+  - job_name: bitcoind-journal
+    journal:
+      max_age: 12h
+      path: /var/log/journal
+      labels:
+        job: systemd-journal
+    relabel_configs:
+      - source_labels: ["__journal__systemd_unit"]
+        target_label: unit
+      - source_labels: ["__journal__hostname"]
+        target_label: node
+      - source_labels: [unit]
+        regex: 'bitcoind\.service'
+        action: keep
+
+  # ckpool, lui, redirige stdout/stderr vers des fichiers
+  # (StandardOutput/StandardError=append:... dans son unit) plutôt que vers le
+  # journal — le job ci-dessus ne le verrait jamais. On lit donc les fichiers ;
+  # promtail étiquette chaque flux avec son nom de fichier automatiquement.
+  - job_name: ckpool-logs
+    static_configs:
+      - targets: ["localhost"]
+        labels:
+          job: ckpool
+          node: debian
+          __path__: /var/log/ckpool/*.log
+          # stdout.log est la barre de statut que ckpool réécrit chaque seconde
+          # avec \r et [2K : le fichier ne contient aucun saut de ligne (14 Mo
+          # mesurés pour 0 ligne au sens de wc -l). Promtail le lisait donc en
+          # entier sans qu'une seule ligne n'atteigne Loki, pour un coût CPU/RAM
+          # bien réel. Tous les messages utiles sont dans ckpool.log.
+          __path_exclude__: /var/log/ckpool/stdout.log
+    pipeline_stages:
+      # ckpool préfixe chaque ligne de son horodate, en heure locale du nœud
+      # (Europe/Paris). Sans ce stage, les lignes portent l'heure d'ingestion :
+      # correct en régime normal, mais au moindre rejeu (volume de positions
+      # perdu) tout l'historique du fichier est réinjecté estampillé
+      # « maintenant ». Avec l'horodate réelle, un rejeu produit des doublons
+      # exacts, que Loki écarte (au-delà d'une heure il les refuse même avec
+      # « entry too far behind » : bruyant dans les logs de promtail, mais sans
+      # pollution des données).
+      - regex:
+          expression: '^\[(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})\]'
+      - timestamp:
+          source: ts
+          format: '2006-01-02 15:04:05.000'
+          location: Europe/Paris

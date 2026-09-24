@@ -1,0 +1,48 @@
+services:
+  # Promtail du nœud bitcoind uniquement (voir promtail-host.config.yaml pour le
+  # pourquoi de la séparation d'avec le promtail global de promtail.yml).
+  promtail-host:
+    image: grafana/promtail:3.1.1
+    command: -config.file=/etc/promtail/promtail.yml
+    configs:
+      - source: promtail_host_conf_v1
+        target: /etc/promtail/promtail.yml
+    volumes:
+      - /var/log/journal:/var/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
+      - /srv/ckpool/logs:/var/log/ckpool:ro
+      # Positions distinctes de celles du promtail global : deux processus
+      # promtail ne peuvent pas partager un positions.yaml, chacun le réécrivant
+      # en entier avec ses seules cibles — ils s'effaceraient mutuellement leurs
+      # offsets et rejoueraient les fichiers de l'autre à chaque cycle.
+      - promtail-host-positions:/positions
+    networks:
+      - chauffagistes-net
+    deploy:
+      # Pas `global` : les binds ci-dessus n'existent que sur le nœud bitcoind,
+      # et Swarm rejette une tâche dont le bind source est absent.
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.bitcoind == true
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 200M
+      restart_policy:
+        condition: on-failure
+
+configs:
+  # Les configs Swarm sont immuables : tout changement de contenu de
+  # promtail-host.config.yaml nécessite un nouveau nom ici ET dans configs: du
+  # service ci-dessus (sinon "only updates to Labels are allowed" au
+  # déploiement). --prune nettoie l'ancien objet devenu orphelin.
+  promtail_host_conf_v1:
+    file: ./promtail-host.config.yaml
+
+volumes:
+  promtail-host-positions:
+
+networks:
+  chauffagistes-net:
+    external: true
