@@ -3,8 +3,8 @@ services:
     image: 10.10.0.3:5000/history-server:1.0.3
     environment:
       - DB_HOST=pg-ha-prod_haproxy
-      - DB_USER=postgres
-      - DB_NAME=chauffagistes
+      - DB_USER=history_server
+      - DB_NAME=history_server
       - PORT=8050
       - GATHER_STATS=true
     command: >
