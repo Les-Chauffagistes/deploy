@@ -1,16 +1,15 @@
 services:
   app:
-    image: 10.10.0.3:5000/history-server:1.0.2
+    image: 10.10.0.3:5000/history-server:1.0.3
     environment:
-      - POSTGRE_HOST=db
-      - POSTGRE_PORT=5432
-      - POSTGRE_USER=postgres
-      - POSTGRE_DB=chauffagistes
+      - DB_HOST=pg-ha-prod-haproxy
+      - DB_USER=postgres
+      - DB_NAME=chauffagistes
       - PORT=8050
       - GATHER_STATS=true
     command: >
       sh -c "
-      export POSTGRE_PASSWORD=$$(cat /run/secrets/history_server_db_password) &&
+      export DB_PASSWORD=$$(cat /run/secrets/history_server_db_password) &&
       export STATS_API_TOKEN=$$(cat /run/secrets/history_server_stats_api_token) &&
       python main.py"
     secrets:
@@ -21,11 +20,11 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - history-server-internal
+      - pg-prod
     deploy:
       placement:
         constraints:
-          - node.labels.chauffagistes.host == itrider
+          - node.labels.worload == true
       update_config:
         order: start-first
         monitor: 60s
@@ -87,22 +86,16 @@ services:
         condition: any
         delay: 5s
 
-secrets:
-  history_server_prod_db_password:
-    external: true
-  history_server_prod_stats_api_token:
-    external: true
-
-volumes:
-  history-server-pgdata:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  history-server-internal:
-    driver: overlay
-    internal: true
-  history-server-db-expose:
-    driver: overlay
+  pg-prod:
+    external: true
+
+secrets:
+  history_server_prod_db_password:
+    external: true
+  history_server_prod_stats_api_token:
+    external: true

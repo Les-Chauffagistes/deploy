@@ -5,7 +5,7 @@ services:
       NODE_ENV: production
       DB_USER: pool_site
       DB_NAME: pool_site
-      DB_HOST: pool-site-prod_db
+      DB_HOST: pg-ha-prod_haproxy
       HOSTNAME: "0.0.0.0"
     secrets:
       - source: pool_site_prod_db_password
@@ -13,12 +13,12 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - pool-site-internal
+      - pg-prod
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == vps
+          - node.labels.worload == true
       update_config:
         order: start-first
         monitor: 60s
@@ -75,17 +75,13 @@ services:
           cpus: "0.5"
           memory: 256M
 
-volumes:
-  pool-site-db-data:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  pool-site-internal:
-    driver: overlay
-    internal: true
+  pg-prod:
+    external: true
 
 secrets:
   pool_site_prod_db_password:

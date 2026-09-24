@@ -5,9 +5,9 @@ services:
       SERVER_PORT: "8080"
       DISCORD_CALLBACK_URL: https://api.auth.chauffagistes-btc.fr/discord/callback
       LIGHTNING_CALLBACK_URL: https://auth.chauffagistes-btc.fr/lightning/callback
-      DB_HOST: db
-      DB_USER: auth
-      DB_NAME: auth
+      DB_HOST: pg-ha-prod_haproxy
+      DB_USER: auth_services
+      DB_NAME: auth_services
       DOMAIN_NAME: .chauffagistes-btc.fr
       DISCORD_CLIENT_ID: "1100450456091766907"
       ENVIRONMENT: production
@@ -21,12 +21,12 @@ services:
     networks:
       - traefik-public
       - chauffagistes-net
-      - auth-internal
+      - pg-prod
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == itrider
+          - node.labels.worload == true
       update_config:
         order: start-first
         monitor: 60s
@@ -89,19 +89,13 @@ services:
           cpus: "0.5"
           memory: 256M
 
-volumes:
-  auth-db-data:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  auth-internal:
-    driver: overlay
-    internal: true
-  auth-db-expose:
-    driver: overlay
+  pg-prod:
+    external: true
 
 secrets:
   auth_prod_db_password:

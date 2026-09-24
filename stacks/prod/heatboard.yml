@@ -1,13 +1,12 @@
 services:
   app:
-    image: 10.10.0.3:5000/heatboard:1.1.4
+    image: 10.10.0.3:5000/heatboard:1.1.5
     environment:
       NODE_ENV: production
       HOSTNAME: "0.0.0.0"
-      PGHOST: db
-      PGUSER: postgres
-      PGPORT: "5432"
-      PGDATABASE: chauffagistes
+      DB_HOST: pg-ha-prod_haproxy
+      DB_USER: heatboard
+      DB_NAME: heatboard
       DISCORD_CLIENT_ID: "1100450456091766907"
       DISCORD_REDIRECT_URI: https://heatboard.chauffagistes-btc.fr/api/auth/discord/callback
       NEXTAUTH_URL: https://heatboard.chauffagistes-btc.fr
@@ -32,12 +31,12 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - heatboard-internal
+      - pg-prod
     deploy:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == itrider
+          - node.labels.worload == true
       update_config:
         order: start-first
         monitor: 60s
@@ -89,7 +88,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.labels.chauffagistes.host == itrider
+          - node.labels.worload == true
       update_config:
         order: stop-first
       restart_policy:
@@ -108,11 +107,8 @@ networks:
     external: true
   traefik-public:
     external: true
-  heatboard-internal:
-    driver: overlay
-    internal: true
-  heatboard-db-expose:
-    driver: overlay
+  pg-prod:
+    external: true
 
 secrets:
   heatboard_prod_db_password:
