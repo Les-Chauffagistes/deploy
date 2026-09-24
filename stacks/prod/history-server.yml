@@ -2,7 +2,7 @@ services:
   app:
     image: 10.10.0.3:5000/history-server:1.0.3
     environment:
-      - DB_HOST=pg-ha-prod-haproxy
+      - DB_HOST=pg-ha-prod_haproxy
       - DB_USER=postgres
       - DB_NAME=chauffagistes
       - PORT=8050
