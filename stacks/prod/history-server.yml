@@ -46,46 +46,6 @@ services:
         - "traefik.http.routers.history-server.tls.certresolver=letsencrypt"
         - "traefik.http.services.history-server.loadbalancer.server.port=8050"
 
-  db:
-    image: timescale/timescaledb-ha:pg17@sha256:9665079bcf1403aa1751f4139acbb5dae6b458c7653dfd357acd4e7ae0973192
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=chauffagistes
-      - POSTGRES_PASSWORD_FILE=/run/secrets/history_server_db_password
-    secrets:
-      - source: history_server_prod_db_password
-        target: history_server_db_password
-    networks:
-      - history-server-internal
-      - history-server-db-expose
-    ports:
-      - target: 5432
-        published: 5432
-        protocol: tcp
-        mode: host
-    volumes:
-      - history-server-pgdata:/home/postgres/pgdata/data
-    stop_grace_period: 60s
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d chauffagistes"]
-      interval: 10s
-      timeout: 5s
-      start_period: 30s
-      retries: 5
-    deploy:
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == itrider
-      update_config:
-        order: stop-first
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-      restart_policy:
-        condition: any
-        delay: 5s
-
 networks:
   chauffagistes-net:
     external: true
