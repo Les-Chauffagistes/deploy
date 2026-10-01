@@ -8,6 +8,6 @@ pinned:
       branch: main
 groups:
   - name: Microservices
-    repos: [auth-service-back, coins-service, bitcoin-service, history-server, hash-contenders-referee, hash-contenders-backend]
+    repos: [auth-service-back, coins-service, bitcoin-service, history-server, hash-contenders-referee, hash-contenders-backend, ckpool-share-exporter]
   - name: Frontends
     repos: [pool-site, heatboard, auth-service-front, hash-contenders, shop, Observer]
