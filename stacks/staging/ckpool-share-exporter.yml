@@ -5,7 +5,7 @@ services:
       DB_NAME: ckpool
       DB_HOST: pg-ha-staging_haproxy
       DB_USER: ckpool
-      BASE_LOG_DIR: /srv/ckpool/logs # symlink!!!!
+      BASE_LOG_DIR: /srv/ckpool/logs
       POOL_INSTANCE_NAME: "{{.Node.Hostname}}"
     command: >
       sh -c "
@@ -14,6 +14,11 @@ services:
     secrets:
       - source: ckpool_staging_db_password
         target: db_password
+    volumes:
+      - type: bind
+        source: /srv/ckpool/logs # symlink!
+        target: /srv/ckpool/logs
+        read_only: true
     networks:
       - chauffagistes-net
       - pg-staging
