@@ -14,8 +14,8 @@ services:
     secrets:
       - source: ckpool_staging_db_password
         target: db_password
-    group_add:
-      - "1000" # GID propriétaire des logs sur debian ; à revoir quand d'autres nœuds ckpool arrivent
+    # group_add est ignoré par `docker stack deploy` ; on passe donc par user
+    user: "1000:1000" # UID/GID propriétaire des logs sur debian ; à revoir quand d'autres nœuds ckpool arrivent
     volumes:
       - type: bind
         source: /srv/ckpool/logs # symlink!
