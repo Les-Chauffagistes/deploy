@@ -1,0 +1,40 @@
+services:
+  app:
+    image: 10.10.0.3:5000/ckpool-share-exporter:sha-e1d5b7f
+    environment:
+      DB_NAME: ckpool
+      DB_HOST: pg-ha-staging_haproxy
+      DB_USER: ckpool
+      BASE_LOG_DIR: /srv/ckpool/logs # symlink!!!!
+      POOL_INSTANCE_NAME: "{{.Node.Hostname}}"
+    command: >
+      sh -c "
+      export DB_PASSWORD=$$(cat /run/secrets/db_password) &&
+      exec python main.py"
+    secrets:
+      - source: ckpool_staging_db_password
+        target: db_password
+    networks:
+      - chauffagistes-net
+      - pg-staging
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.labels.ckpool == true
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+
+secrets:
+  ckpool_staging_db_password:
+    external: true
+
+networks:
+  chauffagistes-net:
+    external: true
+  pg-staging:
+    external: true
