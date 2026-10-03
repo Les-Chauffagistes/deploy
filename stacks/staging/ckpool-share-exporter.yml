@@ -10,7 +10,7 @@ services:
     command: >
       sh -c "
       export DB_PASSWORD=$$(cat /run/secrets/db_password) &&
-      exec python main.py"
+      exec python -m ckpool_share_exporter"
     secrets:
       - source: ckpool_staging_db_password
         target: db_password
