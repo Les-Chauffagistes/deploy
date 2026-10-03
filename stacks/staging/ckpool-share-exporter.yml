@@ -31,7 +31,7 @@ services:
           - node.labels.ckpool == true
       resources:
         limits:
-          cpus: "0.2"
+          cpus: "0.5"
           memory: 128M
       restart_policy:
         condition: on-failure
