@@ -14,6 +14,8 @@ services:
     secrets:
       - source: ckpool_staging_db_password
         target: db_password
+    group_add:
+      - "1000" # GID propriétaire des logs sur debian ; à revoir quand d'autres nœuds ckpool arrivent
     volumes:
       - type: bind
         source: /srv/ckpool/logs # symlink!
