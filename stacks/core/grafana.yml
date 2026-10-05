@@ -13,7 +13,7 @@ services:
         target: /etc/grafana/provisioning/dashboards/provider.yml
       - source: grafana_dashboard_garage_v1
         target: /etc/grafana/provisioning/dashboards/garage.json
-      - source: grafana_dashboard_bitcoind_v4
+      - source: grafana_dashboard_bitcoind_v5
         target: /etc/grafana/provisioning/dashboards/bitcoind.json
       - source: grafana_dashboard_ckpool_v1
         target: /etc/grafana/provisioning/dashboards/ckpool.json
@@ -58,7 +58,7 @@ configs:
     file: ./grafana-dashboards.yaml
   grafana_dashboard_garage_v1:
     file: ./garage-dashboard.json
-  grafana_dashboard_bitcoind_v4:
+  grafana_dashboard_bitcoind_v5:
     file: ./bitcoind-dashboard.json
   grafana_dashboard_ckpool_v1:
     file: ./ckpool-dashboard.json

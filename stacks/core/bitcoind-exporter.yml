@@ -4,14 +4,20 @@ services:
     # BITCOIN_RPC_PASSWORD n'a pas de variante _FILE (contrairement à Grafana) —
     # même wrapper que bitcoin-service.yml pour injecter le secret Docker en
     # variable d'environnement.
+    # Le reste de la config (hôte/port/user RPC) dépend du nœud : une instance
+    # par nœud bitcoind (mode global), qui choisit son entrée dans
+    # bitcoind-exporter.nodes.sh d'après $NODE.
     command: >
       sh -c "
+      . /etc/bitcoind-exporter/nodes.sh &&
+      export BITCOIN_RPC_HOST=$$RPC_HOST BITCOIN_RPC_PORT=$$RPC_PORT BITCOIN_RPC_USER=$$RPC_USER &&
       export BITCOIN_RPC_PASSWORD=$$(cat /run/secrets/bitcoin_service_rpc_password) &&
       exec /monitor/bitcoind-monitor.py"
     environment:
-      BITCOIN_RPC_HOST: "192.168.1.204"
-      BITCOIN_RPC_PORT: "8332"
-      BITCOIN_RPC_USER: "bitcoinrpc"
+      NODE: "{{.Node.Hostname}}"
+    configs:
+      - source: bitcoind_exporter_nodes
+        target: /etc/bitcoind-exporter/nodes.sh
     secrets:
       # Même secret que bitcoin-service (stacks/prod/bitcoin-service.yml) — un
       # seul compte RPC (rpcauth=bitcoinrpc:... dans /mnt/bitcoin/bitcoin.conf),
@@ -21,13 +27,12 @@ services:
     networks:
       - chauffagistes-net
     deploy:
-      replicas: 1
+      mode: global
       placement:
         constraints:
-          # Pas une exigence réseau (bitcoin-service tourne sur hugo et atteint
-          # bitcoind sur debian sans souci via chauffagistes-net) — juste pour
-          # que le service qui parle au RPC de bitcoind reste repérable à côté
-          # de bitcoind lui-même.
+          # Une instance par nœud portant un bitcoind (mode global). Pas une
+          # exigence réseau : l'exporteur reste simplement repérable à côté
+          # de son bitcoind.
           - node.labels.bitcoind == true
       resources:
         limits:
@@ -38,6 +43,12 @@ services:
       labels:
         - "prometheus.scrape=true"
         - "prometheus.port=9332"
+
+configs:
+  bitcoind_exporter_nodes:
+    file: ./bitcoind-exporter.nodes.sh
+    # Docker config immuable : bumper le nom à chaque modif du fichier.
+    name: bitcoind_exporter_nodes_v1
 
 secrets:
   bitcoin_service_prod_rpc_password:

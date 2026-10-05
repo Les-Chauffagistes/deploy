@@ -82,6 +82,11 @@ scrape_configs:
         action: keep
       - source_labels: [__meta_dockerswarm_service_name]
         target_label: swarm_service
+      # Permet de distinguer les instances d'un même service par nœud (comme
+      # pour node-exporter et cadvisor) — l'IP overlay de `instance` change à
+      # chaque reschedule.
+      - source_labels: [__meta_dockerswarm_node_hostname]
+        target_label: node
       - source_labels: [__meta_dockerswarm_service_label_prometheus_path]
         regex: '(.+)'
         target_label: __metrics_path__

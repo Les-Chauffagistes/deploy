@@ -36,7 +36,7 @@ services:
 configs:
   prometheus_conf:
     file: ./prometheus.config.yaml
-    name: prometheus_conf_v2
+    name: prometheus_conf_v3
   prometheus_rules:
     file: ./prometheus.rules.yaml
     # Les Docker configs sont immuables (contenu figé après création) : dès
