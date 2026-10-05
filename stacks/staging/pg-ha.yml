@@ -76,8 +76,8 @@ services:
     environment:
       <<: *db-env
       PATRONI_NAME: db1
-      PATRONI_RESTAPI_CONNECT_ADDRESS: db1:8008
-      PATRONI_POSTGRESQL_CONNECT_ADDRESS: db1:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: pg-ha-staging_db1:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: pg-ha-staging_db1:5432
     volumes:
       - db1-data:/home/postgres
     deploy:
@@ -92,8 +92,8 @@ services:
     environment:
       <<: *db-env
       PATRONI_NAME: db2
-      PATRONI_RESTAPI_CONNECT_ADDRESS: db2:8008
-      PATRONI_POSTGRESQL_CONNECT_ADDRESS: db2:5432
+      PATRONI_RESTAPI_CONNECT_ADDRESS: pg-ha-staging_db2:8008
+      PATRONI_POSTGRESQL_CONNECT_ADDRESS: pg-ha-staging_db2:5432
     volumes:
       - db2-data:/home/postgres
     deploy:
