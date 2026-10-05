@@ -54,7 +54,7 @@ x-patroni-deploy: &patroni-deploy
 
 services:
   app:
-    image: 10.10.0.3:5000/MY-SERVICE:sha-0000000  # mis à jour manuellement
+    image: 172.16.0.3:5000/MY-SERVICE:sha-0000000  # mis à jour manuellement
     environment:
       NODE_ENV: staging
       DB_USER: MY_SERVICE

@@ -1,6 +1,6 @@
 services:
   observer:
-    image: 10.10.0.3:5000/observer:sha-cba0534
+    image: 172.16.0.3:5000/observer:sha-cba0534
     command: >
       sh -c "
       export GITHUB_WEBHOOK_SECRET=$$(cat /run/secrets/github_webhook_secret) &&

@@ -7,7 +7,7 @@ services:
     volumes:
       - verdaccio-storage:/verdaccio/storage
     ports:
-      - "10.10.0.3:4873:4873"
+      - "172.16.0.3:4873:4873"
     networks:
       - chauffagistes-net
     deploy:

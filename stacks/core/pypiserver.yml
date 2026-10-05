@@ -14,7 +14,7 @@ services:
       - pypiserver-packages:/data/packages
       - pypiserver-auth:/data/auth
     ports:
-      - "10.10.0.3:8081:8080"
+      - "172.16.0.3:8081:8080"
     networks:
       - chauffagistes-net
     deploy:

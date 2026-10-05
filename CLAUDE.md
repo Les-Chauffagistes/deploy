@@ -13,7 +13,7 @@ Dépôt d'orchestration Docker Swarm de l'organisation Les Chauffagistes. Il ne 
 | Label | Machine | Rôle |
 |---|---|---|
 | `node.labels.ingress == true` | VPS | Point d'entrée Traefik (ports 80/443) |
-| `node.labels.chauffagistes.host == hugo` | iMac (10.10.0.3), 4 CPU / 8 Go RAM | Workloads, registry privé, héberge le staging (faible activité) — cible par défaut pour tout nouveau déploiement |
+| `node.labels.chauffagistes.host == hugo` | iMac (172.16.0.3), 4 CPU / 8 Go RAM | Workloads, registry privé, héberge le staging (faible activité) — cible par défaut pour tout nouveau déploiement |
 | `node.labels.chauffagistes.host == vps` | VPS | Workloads VPS |
 | `node.labels.chauffagistes.host == itrider` | itrider, 4 CPU / 8 Go RAM | Workloads — capacité supplémentaire si besoin d'étaler |
 
@@ -79,13 +79,13 @@ printf "valeur" | docker secret create pool_site_staging_db_password -
 
 - Staging : tag `sha-<7chars>` (ex: `sha-52acb7a`)
 - Prod : tag semver obligatoire (ex: `1.2.3`) — la CI bloque les SHA en prod
-- Registry privé : `10.10.0.3:5000/<service>:<tag>` (toujours ce registre, pas ghcr.io)
+- Registry privé : `172.16.0.3:5000/<service>:<tag>` (toujours ce registre, pas ghcr.io)
 
 ## CI/CD
 
 ### `build.yml` — workflow réutilisable
 
-Appelé depuis les repos des services applicatifs. Construit et pousse l'image sur `10.10.0.3:5000`. Tourne sur le runner `[self-hosted, worker]`.
+Appelé depuis les repos des services applicatifs. Construit et pousse l'image sur `172.16.0.3:5000`. Tourne sur le runner `[self-hosted, worker]`.
 
 ```yaml
 uses: chauffagistes/chauffagistes-orchestration/.github/workflows/build.yml@main

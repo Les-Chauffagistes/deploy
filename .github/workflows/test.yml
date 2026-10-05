@@ -35,8 +35,8 @@ jobs:
 
       - name: Configure private pip index (chauff-cmn)
         run: |
-          echo "UV_EXTRA_INDEX_URL=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@10.10.0.3:8081/simple/" >> "$GITHUB_ENV"
-          echo "UV_INSECURE_HOST=10.10.0.3:8081" >> "$GITHUB_ENV"
+          echo "UV_EXTRA_INDEX_URL=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@172.16.0.3:8081/simple/" >> "$GITHUB_ENV"
+          echo "UV_INSECURE_HOST=172.16.0.3:8081" >> "$GITHUB_ENV"
 
       - name: Install dependencies
         run: |

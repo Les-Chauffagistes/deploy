@@ -1,6 +1,6 @@
 services:
   app:
-    image: 10.10.0.3:5000/shop:sha-1d69ac0
+    image: 172.16.0.3:5000/shop:sha-1d69ac0
     environment:
       NODE_ENV: staging
       DB_USER: shop

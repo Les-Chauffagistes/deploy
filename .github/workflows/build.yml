@@ -29,7 +29,7 @@ on:
         required: true
 
 env:
-  REGISTRY: 10.10.0.3:5000
+  REGISTRY: 172.16.0.3:5000
 
 jobs:
   build-push:
@@ -71,7 +71,7 @@ jobs:
         id: verdaccio-auth
         run: |
           TOKEN=$(curl -s -u "${{ secrets.REGISTRY_USER }}:${{ secrets.VERDACCIO_PASSWORD }}" \
-            -X PUT "http://10.10.0.3:4873/-/user/org.couchdb.user:${{ secrets.REGISTRY_USER }}" \
+            -X PUT "http://172.16.0.3:4873/-/user/org.couchdb.user:${{ secrets.REGISTRY_USER }}" \
             -H 'Content-Type: application/json' \
             -d "{\"name\":\"${{ secrets.REGISTRY_USER }}\",\"password\":\"${{ secrets.VERDACCIO_PASSWORD }}\"}" \
             | python3 -c "import json,sys; print(json.load(sys.stdin)['token'])")
@@ -89,9 +89,9 @@ jobs:
         run: |
           cat > "$RUNNER_TEMP/ci.npmrc" <<EOF
           //npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
-          @chauffagistes:registry=http://10.10.0.3:4873/
-          //10.10.0.3:4873/:_authToken=${{ steps.verdaccio-auth.outputs.token }}
-          //10.10.0.3:4873/:always-auth=true
+          @chauffagistes:registry=http://172.16.0.3:4873/
+          //172.16.0.3:4873/:_authToken=${{ steps.verdaccio-auth.outputs.token }}
+          //172.16.0.3:4873/:always-auth=true
           EOF
 
       - name: Build & Push image
@@ -104,7 +104,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ inputs.build-args }}
           secrets: |
-            pipindex=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@10.10.0.3:8081/simple/
+            pipindex=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@172.16.0.3:8081/simple/
           secret-files: |
             npmrc=${{ runner.temp }}/ci.npmrc
 

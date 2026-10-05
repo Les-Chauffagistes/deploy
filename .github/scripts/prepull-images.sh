@@ -7,7 +7,7 @@
 # Usage : prepull-images.sh stacks/prod/*.yml
 set -uo pipefail
 
-REGISTRY="10.10.0.3:5000"
+REGISTRY="172.16.0.3:5000"
 TIMEOUT=600
 
 mapfile -t images < <(grep -hoE "^\s*image:\s*${REGISTRY//./\\.}/[^[:space:]\"'#]+" "$@" \
