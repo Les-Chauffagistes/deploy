@@ -36,12 +36,12 @@ services:
           memory: 128M
       restart_policy:
         condition: on-failure
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.ckpool-share-exporter-staging.rule=Host(`ckpool.staging.chauffagistes-btc.fr`)"
-      - "traefik.http.routers.ckpool-share-exporter-staging.entrypoints=websecure"
-      - "traefik.http.routers.ckpool-share-exporter-staging.tls.certresolver=letsencrypt"
-      - "traefik.http.services.ckpool-share-exporter-staging.loadbalancer.server.port=8080"
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ckpool-share-exporter-staging.rule=Host(`ckpool.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.ckpool-share-exporter-staging.entrypoints=websecure"
+        - "traefik.http.routers.ckpool-share-exporter-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.ckpool-share-exporter-staging.loadbalancer.server.port=8080"
 
 secrets:
   ckpool_staging_db_password:
