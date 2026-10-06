@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/ckpool-share-exporter:sha-30a9311
+    image: 172.16.0.3:5000/ckpool-share-exporter:sha-f16d354
     environment:
       DB_NAME: ckpool
       DB_HOST: pg-ha-staging_haproxy
