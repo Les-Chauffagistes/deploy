@@ -23,6 +23,7 @@ services:
         read_only: true
     networks:
       - chauffagistes-net
+      - traefik-public
       - pg-staging
     deploy:
       mode: global
@@ -35,6 +36,12 @@ services:
           memory: 128M
       restart_policy:
         condition: on-failure
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ckpool-share-exporter-staging.rule=Host(`ckpool.staging.chauffagistes-btc.fr`)"
+      - "traefik.http.routers.ckpool-share-exporter-staging.entrypoints=websecure"
+      - "traefik.http.routers.ckpool-share-exporter-staging.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ckpool-share-exporter-staging.loadbalancer.server.port=8080"
 
 secrets:
   ckpool_staging_db_password:
@@ -44,4 +51,6 @@ networks:
   chauffagistes-net:
     external: true
   pg-staging:
+    external: true
+  traefik-public:
     external: true
