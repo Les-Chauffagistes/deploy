@@ -1,7 +1,22 @@
 {
   "uid": "ckpool",
-  "title": "CKPool (debian)",
-  "tags": ["bitcoin", "debian", "ckpool"],
+  "title": "CKPool",
+  "tags": ["bitcoin", "ckpool"],
+  "templating": {
+    "list": [
+      {
+        "name": "node",
+        "label": "Nœud",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": { "query": "label_values(node_systemd_unit_state{name=\"ckpool.service\"}, node)", "refId": "node" },
+        "refresh": 2,
+        "multi": true,
+        "includeAll": true,
+        "current": { "selected": true, "text": "All", "value": "$__all" }
+      }
+    ]
+  },
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
@@ -13,11 +28,11 @@
       "id": 2,
       "type": "stat",
       "title": "Service ckpool",
-      "description": "État systemd du service ckpool sur debian. Indépendant du fait qu'un mineur soit connecté ou non — c'est un serveur de secours, il peut rester sans mineur pendant de longues périodes sans que ce soit anormal.",
+      "description": "État systemd du service ckpool sur chaque nœud sélectionné. Indépendant du fait qu'un mineur soit connecté ou non — c'est un serveur de secours, il peut rester sans mineur pendant de longues périodes sans que ce soit anormal.",
       "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
-        { "expr": "node_systemd_unit_state{name=\"ckpool.service\", state=\"active\"}", "legendFormat": "actif" }
+        { "expr": "node_systemd_unit_state{name=\"ckpool.service\", state=\"active\", node=~\"$node\"}", "legendFormat": "{{node}}" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -74,11 +89,11 @@
     {
       "id": 21,
       "type": "logs",
-      "title": "Logs ckpool (stdout / stderr / ckpool.log)",
+      "title": "Logs ckpool",
       "description": "Preuve directe de fonctionnement même sans mineur connecté : ckpool redemande un nouveau template de bloc à bitcoind toutes les 30s (update_interval) et à chaque nouveau bloc réseau (\"Broadcast updated stratum base\"), qu'il y ait un mineur ou non. Une absence prolongée de ces lignes, ou des \"Failed to connect socket\" / \"CRITICAL: No bitcoinds active!\" répétés, signale une perte de connexion au RPC.",
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
       "datasource": { "type": "loki", "uid": "loki" },
-      "targets": [{ "expr": "{job=\"ckpool\"}" }],
+      "targets": [{ "expr": "{job=\"ckpool\", node=~\"$node\"}" }],
       "options": { "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true, "enableLogDetails": true }
     }
   ]

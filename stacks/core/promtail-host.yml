@@ -5,12 +5,11 @@ services:
     image: grafana/promtail:3.1.1
     command: -config.file=/etc/promtail/promtail.yml
     configs:
-      - source: promtail_host_conf_v1
+      - source: promtail_host_conf_v2
         target: /etc/promtail/promtail.yml
     volumes:
       - /var/log/journal:/var/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
-      - /srv/ckpool/logs:/var/log/ckpool:ro
       # Positions distinctes de celles du promtail global : deux processus
       # promtail ne peuvent pas partager un positions.yaml, chacun le réécrivant
       # en entier avec ses seules cibles — ils s'effaceraient mutuellement leurs
@@ -37,7 +36,7 @@ configs:
   # promtail-host.config.yaml nécessite un nouveau nom ici ET dans configs: du
   # service ci-dessus (sinon "only updates to Labels are allowed" au
   # déploiement). --prune nettoie l'ancien objet devenu orphelin.
-  promtail_host_conf_v1:
+  promtail_host_conf_v2:
     file: ./promtail-host.config.yaml
 
 volumes:
