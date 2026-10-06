@@ -30,6 +30,10 @@ services:
       placement:
         constraints:
           - node.labels.ckpool == true
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
       resources:
         limits:
           cpus: "0.5"
