@@ -21,6 +21,10 @@ services:
         source: /srv/ckpool/logs # symlink!
         target: /srv/ckpool/logs
         read_only: true
+    # TEMPORAIRE : désactive le HEALTHCHECK de l'image pour vérifier si ckpool01 est tué
+    # par l'échec de /health (reprise des sharelogs en PROCESSING qui bloque la boucle ?)
+    healthcheck:
+      disable: true
     networks:
       - chauffagistes-net
       - traefik-public
