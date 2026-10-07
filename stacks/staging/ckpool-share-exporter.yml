@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/ckpool-share-exporter:sha-b231dc9
+    image: 172.16.0.3:5000/ckpool-share-exporter:sha-8d3adc3
     environment:
       DB_NAME: ckpool
       DB_HOST: pg-ha-staging_haproxy
@@ -21,10 +21,6 @@ services:
         source: /srv/ckpool/logs # symlink!
         target: /srv/ckpool/logs
         read_only: true
-    # TEMPORAIRE : désactive le HEALTHCHECK de l'image pour vérifier si ckpool01 est tué
-    # par l'échec de /health (reprise des sharelogs en PROCESSING qui bloque la boucle ?)
-    healthcheck:
-      disable: true
     networks:
       - chauffagistes-net
       - traefik-public
@@ -43,7 +39,7 @@ services:
           cpus: "0.5"
           memory: 128M
       restart_policy:
-        condition: any
+        condition: on-failure
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.ckpool-share-exporter-staging.rule=Host(`ckpool.staging.chauffagistes-btc.fr`)"
