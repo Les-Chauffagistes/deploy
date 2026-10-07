@@ -39,7 +39,7 @@ services:
           cpus: "0.5"
           memory: 128M
       restart_policy:
-        condition: on-failure
+        condition: any
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.ckpool-share-exporter-staging.rule=Host(`ckpool.staging.chauffagistes-btc.fr`)"
