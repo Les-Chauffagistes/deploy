@@ -1,0 +1,180 @@
+x-redis: &redis
+  image: valkey/valkey:8-alpine
+  entrypoint: ["/redis-ha/entrypoint.sh"]
+  command: ["redis"]
+  networks:
+    - redis
+  configs:
+    - source: redis_ha_staging_entrypoint_v1
+      target: /redis-ha/entrypoint.sh
+      mode: 0555
+  # Local uniquement : un healthcheck qui dépendrait des pairs bloquerait le
+  # bootstrap (Swarm ne publie une tâche dans son DNS qu'une fois healthy).
+  healthcheck:
+    test: ["CMD", "valkey-cli", "ping"]
+    interval: 10s
+    timeout: 3s
+    retries: 3
+    start_period: 20s
+
+x-redis-env: &redis-env
+  DEFAULT_MASTER: redis1
+  SENTINELS: sentinel1 sentinel2 sentinel3
+  MAXMEMORY: 384mb
+
+x-redis-deploy: &redis-deploy
+  replicas: 1
+  endpoint_mode: dnsrr
+  update_config:
+    order: stop-first
+  restart_policy:
+    condition: any
+    delay: 5s
+  resources:
+    limits:
+      cpus: "0.5"
+      memory: 512M
+
+x-sentinel: &sentinel
+  <<: *redis
+  command: ["sentinel"]
+  healthcheck:
+    test: ["CMD", "valkey-cli", "-p", "26379", "ping"]
+    interval: 10s
+    timeout: 3s
+    retries: 3
+    start_period: 20s
+
+x-sentinel-deploy: &sentinel-deploy
+  replicas: 1
+  endpoint_mode: dnsrr
+  update_config:
+    order: stop-first
+  restart_policy:
+    condition: any
+    delay: 5s
+  resources:
+    limits:
+      cpus: "0.1"
+      memory: 64M
+
+services:
+  redis1:
+    <<: *redis
+    hostname: redis1
+    environment:
+      <<: *redis-env
+      NODE_NAME: redis1
+    deploy:
+      <<: *redis-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+
+  redis2:
+    <<: *redis
+    hostname: redis2
+    environment:
+      <<: *redis-env
+      NODE_NAME: redis2
+    deploy:
+      <<: *redis-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == itrider
+
+  sentinel1:
+    <<: *sentinel
+    hostname: sentinel1
+    environment:
+      <<: *redis-env
+      NODE_NAME: sentinel1
+    deploy:
+      <<: *sentinel-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+
+  sentinel2:
+    <<: *sentinel
+    hostname: sentinel2
+    environment:
+      <<: *redis-env
+      NODE_NAME: sentinel2
+    deploy:
+      <<: *sentinel-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == itrider
+
+  sentinel3:
+    <<: *sentinel
+    hostname: sentinel3
+    environment:
+      <<: *redis-env
+      NODE_NAME: sentinel3
+    deploy:
+      <<: *sentinel-deploy
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == vps
+
+  haproxy:
+    image: haproxy:3.2-alpine
+    networks:
+      - redis
+    configs:
+      - source: redis_ha_staging_haproxy_v1
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    deploy:
+      replicas: 2
+      placement:
+        max_replicas_per_node: 1
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: stop-first
+        parallelism: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+
+  # Métriques du master du moment (via HAProxy). Sur chauffagistes-net pour être
+  # joignable par Prometheus.
+  exporter:
+    image: oliver006/redis_exporter:v1.67.0-alpine
+    command: ["--redis.addr=redis://haproxy:6379"]
+    networks:
+      - redis
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 64M
+      labels:
+        - "prometheus.scrape=true"
+        - "prometheus.port=9121"
+
+configs:
+  # Configs Swarm immuables : incrémenter _vN à chaque changement de fichier.
+  redis_ha_staging_entrypoint_v1:
+    file: ../common/redis-ha-entrypoint.sh
+  redis_ha_staging_haproxy_v1:
+    file: ../common/redis-ha-haproxy.cfg
+
+networks:
+  chauffagistes-net:
+    external: true
+  redis:
+    name: redis-staging
+    driver: overlay
+    internal: true
