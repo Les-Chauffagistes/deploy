@@ -5,7 +5,7 @@ services:
       SERVER_PORT: "8080"
       PROMETHEUS_URL: "http://prometheus:9090"
     secrets:
-      - source: pool_api_staging_api_password
+      - source: pool_api_staging_api_key
         target: pool_api_password
       - source: ckpool_staging_db_password
         target: db_password
@@ -39,7 +39,7 @@ services:
         - "traefik.http.services.pool-api.loadbalancer.server.port=8080"
 
 secrets:
-  pool_api_staging_api_password:
+  pool_api_staging_api_key:
     external: true
   ckpool_staging_db_password:
     external: true
