@@ -4,6 +4,9 @@ services:
     environment:
       SERVER_PORT: "8080"
       PROMETHEUS_URL: "http://prometheus:9090"
+      DB_HOST: pg-ha-staging_haproxy
+      DB_NAME: ckpool
+      DB_USER: ckpool
     secrets:
       - source: pool_api_staging_api_key
         target: pool_api_password
