@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/pool-api:sha-46723c6
+    image: 172.16.0.3:5000/pool-api:sha-02e921f
     environment:
       SERVER_PORT: "8080"
       PROMETHEUS_URL: "http://prometheus:9090"
