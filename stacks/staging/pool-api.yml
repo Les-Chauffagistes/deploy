@@ -16,7 +16,7 @@ services:
         target: pool_api_password
       - source: ckpool_staging_db_password
         target: db_password
-      - source: history_staging_database_url
+      - source: history_server_staging_db_password
         target: history_db_password
     networks:
       - chauffagistes-net
