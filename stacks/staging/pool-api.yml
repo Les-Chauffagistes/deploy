@@ -1,18 +1,23 @@
 services:
   app:
-    image: 172.16.0.3:5000/pool-api:sha-e44a706
+    image: 172.16.0.3:5000/pool-api:sha-23b1ad6
     environment:
       SERVER_PORT: "8080"
       PROMETHEUS_URL: "http://prometheus:9090"
       DB_HOST: pg-ha-staging_haproxy
       DB_NAME: ckpool
       DB_USER: ckpool
+      HISTORY_DB_USER: history_server
+      HISTORY_DB_HOST: pg-ha-staging_haproxy
+      HISTORY_DB_NAME: history_server
       REDIS_URL: redis://redis-ha-staging_haproxy:6379
     secrets:
       - source: pool_api_staging_api_key
         target: pool_api_password
       - source: ckpool_staging_db_password
         target: db_password
+      - source: history_staging_database_url
+        target: history_db_password
     networks:
       - chauffagistes-net
       - traefik-public
