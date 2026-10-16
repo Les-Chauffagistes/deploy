@@ -54,6 +54,8 @@ secrets:
     external: true
   ckpool_staging_db_password:
     external: true
+  history_server_staging_db_password:
+    external: true
 
 networks:
   chauffagistes-net:
