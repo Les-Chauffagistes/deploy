@@ -6,8 +6,6 @@ services:
         target: /verdaccio/conf/config.yaml
     volumes:
       - verdaccio-storage:/verdaccio/storage
-    ports:
-      - "172.16.0.3:4873:4873"
     networks:
       - chauffagistes-net
     deploy:

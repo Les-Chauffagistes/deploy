@@ -13,8 +13,8 @@ services:
       # (et l'option `bind: create_host_path` de la spec Compose n'est pas
       # honorée par `docker stack deploy` — vérifié sur le moteur 26.1.5), ce qui
       # fait tomber le service à 1 réplica sans autre signe qu'un `docker service
-      # ls` à 1/N. Les chemins propres au nœud bitcoind (journal systemd, logs
-      # ckpool) sont donc collectés par promtail-host.yml.
+      # ls` à 1/N. Les chemins propres au nœud bitcoind (journal systemd) sont donc collectés par promtail-host.yml,
+      # ceux de ckpool par promtail-ckpool.yml.
       #
       # Position de lecture par nœud (mode: global) : sans volume nommé, ce fichier
       # vit dans le rootfs éphémère du conteneur et repart de zéro à chaque

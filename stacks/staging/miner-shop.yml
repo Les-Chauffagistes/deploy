@@ -1,0 +1,75 @@
+services:
+  app:
+    image: 172.16.0.3:5000/miner-shop:sha-0df6531
+    # NE PAS copier `NODE_ENV: staging` des gabarits : l'entrypoint de l'image impose
+    # NODE_ENV=production (mode de Next.js et de la validation de configuration).
+    environment:
+      PUBLIC_URL: https://miner-shop.staging.chauffagistes-btc.fr
+      AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
+      AUTH_FRONT_URL: https://auth.staging.chauffagistes-btc.fr
+      BACKOFFICE_USER_IDS: "90,92,88,271,272"
+      # Secrets : l'entrypoint lit le fichier monté par Swarm (/run/secrets/<cible>)
+      DATABASE_URL_FILE: /run/secrets/database_url
+      JWT_SECRET_FILE: /run/secrets/jwt_secret
+      PAYMENT_WEBHOOK_SECRET_FILE: /run/secrets/payment_webhook_secret
+      # Facultatifs (paiement simulé) : PAYMENT_BTC_PRICE_EUR_CENTS, PAYMENT_REFUND_NETWORK_FEE_SATS
+    secrets:
+      - source: miner_shop_staging_database_url
+        target: database_url
+      # Même valeur que le JWT_SECRET d'auth-service back : secret déjà existant, partagé
+      - source: auth_staging_jwt_secret
+        target: jwt_secret
+      - source: miner_shop_staging_payment_webhook_secret
+        target: payment_webhook_secret
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - pg-staging
+    # Le port d'écoute est 3000 (PORT, défaut de l'entrypoint). L'image n'embarque ni curl ni wget.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s  # les migrations s'appliquent avant l'écoute
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: stop-first   # jamais deux versions en même temps sur le même schéma
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M  # Next.js : 256M est juste
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.miner-shop-staging.rule=Host(`miner-shop.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.miner-shop-staging.entrypoints=websecure"
+        - "traefik.http.routers.miner-shop-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.miner-shop-staging.loadbalancer.server.port=3000"
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  pg-staging:
+    external: true
+
+secrets:
+  miner_shop_staging_database_url:
+    external: true
+  miner_shop_staging_payment_webhook_secret:
+    external: true
+  auth_staging_jwt_secret:
+    external: true

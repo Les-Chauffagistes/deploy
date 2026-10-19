@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/ckpool-share-exporter:sha-590e558
+    image: 172.16.0.3:5000/ckpool-share-exporter:sha-a17faa9
     environment:
       DB_NAME: ckpool
       DB_HOST: pg-ha-staging_haproxy
@@ -23,18 +23,30 @@ services:
         read_only: true
     networks:
       - chauffagistes-net
+      - traefik-public
       - pg-staging
     deploy:
       mode: global
       placement:
         constraints:
           - node.labels.ckpool == true
+      update_config:
+        order: start-first
+        parallelism: 2
+        monitor: 60s
+        failure_action: rollback
       resources:
         limits:
           cpus: "0.5"
           memory: 128M
       restart_policy:
         condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ckpool-share-exporter-staging.rule=Host(`ckpool.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.ckpool-share-exporter-staging.entrypoints=websecure"
+        - "traefik.http.routers.ckpool-share-exporter-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.ckpool-share-exporter-staging.loadbalancer.server.port=8080"
 
 secrets:
   ckpool_staging_db_password:
@@ -44,4 +56,6 @@ networks:
   chauffagistes-net:
     external: true
   pg-staging:
+    external: true
+  traefik-public:
     external: true

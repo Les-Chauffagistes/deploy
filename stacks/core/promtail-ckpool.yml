@@ -1,0 +1,46 @@
+services:
+  # Promtail des logs fichiers de ckpool, une tâche par nœud portant une
+  # instance (voir promtail-ckpool.config.yaml). Séparé de promtail-host : celui-ci
+  # reste un réplica unique sur le nœud bitcoind (journal systemd), alors que
+  # ckpool peut tourner sur plusieurs nœuds.
+  promtail-ckpool:
+    image: grafana/promtail:3.1.1
+    # expand-env : le label `node` du job est ${NODE} dans la config.
+    command: -config.file=/etc/promtail/promtail.yml -config.expand-env=true
+    environment:
+      NODE: "{{.Node.Hostname}}"
+    configs:
+      - source: promtail_ckpool_conf_v1
+        target: /etc/promtail/promtail.yml
+    volumes:
+      # Même convention que ckpool-share-exporter : /srv/ckpool/logs (symlink)
+      # doit exister sur chaque nœud labellisé ckpool, sinon Swarm rejette la
+      # tâche.
+      - /srv/ckpool/logs:/var/log/ckpool:ro
+      - promtail-ckpool-positions:/positions
+    networks:
+      - chauffagistes-net
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.labels.ckpool == true
+      resources:
+        limits:
+          cpus: "0.3"
+          memory: 200M
+      restart_policy:
+        condition: on-failure
+
+configs:
+  # Configs Swarm immuables : bumper le nom ici ET dans le service à chaque
+  # modification de promtail-ckpool.config.yaml.
+  promtail_ckpool_conf_v1:
+    file: ./promtail-ckpool.config.yaml
+
+volumes:
+  promtail-ckpool-positions:
+
+networks:
+  chauffagistes-net:
+    external: true
