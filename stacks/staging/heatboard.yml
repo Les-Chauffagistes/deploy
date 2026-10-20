@@ -12,7 +12,7 @@ services:
       NEXTAUTH_URL: https://heatboard.staging.chauffagistes-btc.fr
       COOKIE_DOMAIN: .chauffagistes-btc.fr
       BASE_URL: https://heatboard.staging.chauffagistes-btc.fr
-      API_URL: https://chauffagistes-pool.fr:3000
+      API_URL: https://api.staging.chauffagistes-btc.fr
       HISTORY_API_URL: https://history.staging.chauffagistes-btc.fr
       BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr
