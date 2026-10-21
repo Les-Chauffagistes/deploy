@@ -46,6 +46,8 @@ services:
         - "traefik.http.services.history-server-staging.loadbalancer.server.port=8050"
 
 secrets:
+  history_server_staging_db_password:
+    external: true
   pool_api_staging_api_key:
     external: true
 
