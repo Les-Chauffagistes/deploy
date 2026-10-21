@@ -1,12 +1,13 @@
 services:
   app:
-    image: 172.16.0.3:5000/history-server:sha-d30b9c2
+    image: 172.16.0.3:5000/history-server:sha-1111124
     environment:
       - DB_HOST=pg-ha-staging_haproxy
       - DB_USER=history_server
       - DB_NAME=history_server
       - PORT=8050
       - GATHER_STATS=true
+      - STATS_URL=https://api.staging.chauffagistes-btc.fr
     command: >
       sh -c "
       export DB_PASSWORD=$$(cat /run/secrets/history_server_staging_db_password) &&
