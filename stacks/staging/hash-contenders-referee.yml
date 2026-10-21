@@ -1,15 +1,15 @@
 services:
   app:
-    image: 172.16.0.3:5000/hash-contenders-referee:sha-fc75142
+    image: 172.16.0.3:5000/hash-contenders-referee:sha-ab39634
     environment:
       SERVER_PORT: "8095"
       DB_USER: contenders_referee
       DB_HOST: pg-ha-staging_haproxy
       DB_NAME: contenders_referee
-      API_URL: wss://shares-ws.chauffagistes-btc.fr/ws
+      API_URL: wss://api.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
       FRONTEND_URL: https://contenders.staging.chauffagistes-btc.fr
-      POOL_API_URL: https://chauffagistes-pool.fr:3000
+      POOL_API_URL: https://api.staging.chauffagistes-btc.fr
     secrets:
       - source: referee_staging_db_password
         target: db_password
