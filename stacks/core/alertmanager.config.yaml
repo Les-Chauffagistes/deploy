@@ -2,8 +2,24 @@ route:
   group_by: ["alertname", "swarm_service"]
   group_wait: 30s
   group_interval: 5m
-  repeat_interval: 3h
+  repeat_interval: 12h
   receiver: discord
+  routes:
+    # Un critique non résolu se répète toutes les heures : il doit rester
+    # visible. Les warnings (12h par défaut) ne doivent pas le noyer.
+    - matchers:
+        - severity="critical"
+      repeat_interval: 1h
+
+inhibit_rules:
+  # Un nœud déjà signalé down (SwarmNodeDown, qui pose le label node) explique
+  # les alertes de scrape et de conteneurs sur ce même nœud : inutile de les
+  # envoyer en plus.
+  - source_matchers:
+      - alertname="SwarmNodeDown"
+    target_matchers:
+      - alertname=~"ScrapeTargetDown|ContainerRestartLoop|ContainerMemoryNearLimit|NodeDiskSpaceLow"
+    equal: ["node"]
 
 receivers:
   - name: discord
