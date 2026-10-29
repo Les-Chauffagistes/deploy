@@ -113,8 +113,12 @@ groups:
         # Garde-fou des deux alertes ci-dessus : si swarm-state-exporter ne met
         # plus le fichier à jour (manager sans leader, tâche arrêtée), elles ne
         # verraient plus rien et se résoudraient en silence.
+        # max() : on ne regarde que le fichier le plus récent. D'anciennes copies
+        # peuvent traîner dans le volume textfile d'un autre nœud (backup en a une
+        # du 06/10, de l'époque où l'exporter y tournait) et, évaluées une par une,
+        # déclencheraient l'alerte en permanence.
         expr: |
-          time() - node_textfile_mtime_seconds{file="/textfile/swarm_nodes.prom"} > 300
+          time() - max(node_textfile_mtime_seconds{file="/textfile/swarm_nodes.prom"}) > 300
             or
           absent(node_textfile_mtime_seconds{file="/textfile/swarm_nodes.prom"})
         for: 5m
