@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/heatboard:sha-8ce0334
+    image: 172.16.0.3:5000/heatboard:sha-f198cba
     environment:
       NODE_ENV: staging
       HOSTNAME: "0.0.0.0"
@@ -12,7 +12,7 @@ services:
       NEXTAUTH_URL: https://heatboard.staging.chauffagistes-btc.fr
       COOKIE_DOMAIN: .chauffagistes-btc.fr
       BASE_URL: https://heatboard.staging.chauffagistes-btc.fr
-      API_URL: https://chauffagistes-pool.fr:3000
+      API_URL: https://api.staging.chauffagistes-btc.fr
       HISTORY_API_URL: https://history.staging.chauffagistes-btc.fr
       BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr

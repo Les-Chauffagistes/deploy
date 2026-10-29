@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/hash-contenders:sha-8baaca5
+    image: 172.16.0.3:5000/hash-contenders:sha-262516f
     environment:
       HOSTNAME: 0.0.0.0
       API_URL: https://api.contenders.staging.chauffagistes-btc.fr
@@ -10,9 +10,9 @@ services:
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr
       COINS_API_URL: http://coins-service-staging_app:8095
       BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
-      DB_USER: postgres
-      DB_NAME: chauffagistes
-      DB_HOST: hash-contenders-staging_db
+      DB_USER: contenders
+      DB_NAME: contenders
+      DB_HOST: pg-ha-staging_haproxy
       BETS_CURRENCY: hashcoin
       TURNSTILE_SITE_KEY: 0x4AAAAAAEjE68rVZyl_GnoF
     secrets:
@@ -26,7 +26,7 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - contenders-staging-internal
+      - pg-staging
     deploy:
       replicas: 1
       placement:
@@ -53,60 +53,13 @@ services:
         - "traefik.http.routers.contenders-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.contenders-staging.loadbalancer.server.port=3000"
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: chauffagistes
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - source: contenders_staging_db_password
-        target: db_password
-    volumes:
-      - contenders-staging-db-data:/var/lib/postgresql/data
-    networks:
-      - contenders-staging-internal
-      - contenders-staging-db-expose
-    ports:
-      - target: 5432
-        published: 5434
-        protocol: tcp
-        mode: host
-    stop_grace_period: 60s
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
-      update_config:
-        order: stop-first
-      restart_policy:
-        condition: any
-        delay: 5s
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-
-volumes:
-  contenders-staging-db-data:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  contenders-staging-internal:
-    driver: overlay
-    internal: true
-  contenders-staging-db-expose:
-    driver: overlay
+  pg-staging:
+    external: true
 
 secrets:
   contenders_staging_db_password:

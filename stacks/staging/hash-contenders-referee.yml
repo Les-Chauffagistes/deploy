@@ -1,15 +1,15 @@
 services:
   app:
-    image: 172.16.0.3:5000/hash-contenders-referee:sha-1879be4
+    image: 172.16.0.3:5000/hash-contenders-referee:sha-d62df04
     environment:
       SERVER_PORT: "8095"
-      DB_USER: postgres
-      DB_HOST: hash-contenders-referee-staging_db
-      DB_NAME: chauffagistes
-      API_URL: wss://shares-ws.chauffagistes-btc.fr/ws
+      DB_USER: contenders_referee
+      DB_HOST: pg-ha-staging_haproxy
+      DB_NAME: contenders_referee
+      API_URL: wss://api.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
       FRONTEND_URL: https://contenders.staging.chauffagistes-btc.fr
-      POOL_API_URL: https://chauffagistes-pool.fr:3000
+      POOL_API_URL: https://api.staging.chauffagistes-btc.fr
     secrets:
       - source: referee_staging_db_password
         target: db_password
@@ -20,7 +20,7 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - referee-staging-internal
+      - pg-staging
     deploy:
       replicas: 1
       placement:
@@ -47,60 +47,13 @@ services:
         - "traefik.http.routers.referee-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.referee-staging.loadbalancer.server.port=8095"
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: chauffagistes
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - source: referee_staging_db_password
-        target: db_password
-    volumes:
-      - referee-staging-db-data:/var/lib/postgresql/data
-    networks:
-      - referee-staging-internal
-      - referee-staging-db-expose
-    ports:
-      - target: 5432
-        published: 5437
-        protocol: tcp
-        mode: host
-    stop_grace_period: 60s
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.chauffagistes.host == hugo
-      update_config:
-        order: stop-first
-      restart_policy:
-        condition: any
-        delay: 5s
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-
-volumes:
-  referee-staging-db-data:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  referee-staging-internal:
-    driver: overlay
-    internal: true
-  referee-staging-db-expose:
-    driver: overlay
+  pg-staging:
+    external: true
 
 secrets:
   referee_staging_db_password:

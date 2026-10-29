@@ -36,9 +36,8 @@ services:
           cpus: "0.5"
           memory: 256M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 15s
-        max_attempts: 10
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.history-server.rule=Host(`history.chauffagistes-btc.fr`)"

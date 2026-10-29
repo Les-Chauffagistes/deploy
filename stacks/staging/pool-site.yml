@@ -1,11 +1,12 @@
 services:
   app:
-    image: 172.16.0.3:5000/pool-site:sha-40ef28c
+    image: 172.16.0.3:5000/pool-site:sha-74ccb99
     environment:
       NODE_ENV: staging
       DB_USER: pool_site
       DB_NAME: pool_site
       DB_HOST: pool-site-staging_db
+      POOL_SERVICE_API_URL: https://api.staging.chauffagistes-btc.fr
       HOSTNAME: "0.0.0.0"
     secrets:
       - source: pool_site_staging_db_password
@@ -20,7 +21,7 @@ services:
         constraints:
           - node.labels.chauffagistes.host == hugo
       update_config:
-        order: stop-first
+        order: start-first
         monitor: 60s
         failure_action: rollback
       rollback_config:
