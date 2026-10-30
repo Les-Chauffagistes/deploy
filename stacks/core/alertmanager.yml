@@ -5,7 +5,7 @@ services:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
     configs:
-      - source: alertmanager_conf_v2
+      - source: alertmanager_conf_v3
         target: /etc/alertmanager/alertmanager.yml
     volumes:
       - alertmanager-data:/alertmanager
@@ -58,7 +58,7 @@ configs:
   # ET dans configs: du service alertmanager ci-dessus (sinon "only updates
   # to Labels are allowed" au déploiement). --prune nettoie l'ancien objet
   # devenu orphelin.
-  alertmanager_conf_v2:
+  alertmanager_conf_v3:
     file: ./alertmanager.config.yaml
 
 volumes:

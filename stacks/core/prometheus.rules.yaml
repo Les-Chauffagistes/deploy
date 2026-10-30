@@ -12,16 +12,36 @@ groups:
           summary: "Redémarrages répétés : {{ $labels.container_label_com_docker_swarm_service_name }}"
           description: "Le service Swarm {{ $labels.container_label_com_docker_swarm_service_name }} sur {{ $labels.instance }} a redémarré plus de 2 fois en 10 minutes."
 
-      - alert: ServiceReplicasDown
+      - alert: ScrapeTargetDown
+        # Remplace ServiceReplicasDown, qui alertait sur up{} par instance, alors que
+        # l'instance est l'IP de la tâche, qui change à chaque redémarrage
+        # (node-exporter/cadvisor en mode global), d'où des dizaines de séries
+        # distinctes par jour et un flot d'alertes quasi permanent. Un nœud down
+        # est couvert par SwarmNodeDown, un service sans réplica par
+        # SwarmServiceReplicasMissing : ici ne reste que "la tâche tourne mais
+        # n'est pas scrapable", donc warning, agrégé par (job, node) pour ignorer
+        # les anciennes IP.
         # swarm-services couvre tout service opt-in via les labels prometheus.scrape/port
         # (voir prometheus.config.yaml) — Garage y compris.
-        expr: up{job=~"node-exporter|cadvisor|traefik|swarm-services"} == 0
+        expr: |
+          max by (job, node) (up{job=~"node-exporter|cadvisor"}) == 0
+            or
+          up{job="swarm-services"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cible non scrapable : {{ $labels.job }} sur {{ $labels.node }}"
+          description: "Prometheus n'arrive plus à scraper {{ $labels.job }} sur {{ $labels.node }} {{ $labels.instance }} depuis 10 minutes alors que la tâche existe — vérifier le réseau overlay vers ce nœud ou la saturation du service."
+
+      - alert: TraefikDown
+        expr: up{job="traefik"} == 0
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Cible injoignable : {{ $labels.job }} sur {{ $labels.instance }}"
-          description: "Prometheus n'arrive plus à scraper {{ $labels.job }} ({{ $labels.instance }}) depuis 2 minutes — le nœud ou le service est probablement down."
+          summary: "Traefik injoignable"
+          description: "Prometheus n'arrive plus à scraper Traefik ({{ $labels.instance }}) depuis 2 minutes — tout le trafic entrant est probablement coupé."
 
   - name: swarm-nodes
     rules:
@@ -38,6 +58,10 @@ groups:
         for: 2m
         labels:
           severity: critical
+          # Aligne ce label sur celui des alertes par nœud (node-exporter/cadvisor)
+          # pour que alertmanager.config.yaml puisse inhiber leurs alertes quand
+          # le nœud est déjà signalé down.
+          node: "{{ $labels.swarm_node }}"
         annotations:
           summary: "Nœud Swarm down : {{ $labels.swarm_node }}"
           description: "{{ $labels.swarm_node }} n'est plus Ready dans le cluster Swarm (docker node ls) depuis plus de 2 minutes."
@@ -50,6 +74,59 @@ groups:
         annotations:
           summary: "Nœud Swarm indisponible pour de nouvelles tâches : {{ $labels.swarm_node }}"
           description: "{{ $labels.swarm_node }} est en Pause ou Drain depuis plus de 5 minutes — aucune nouvelle tâche ne peut y être planifiée."
+
+  - name: swarm-services
+    rules:
+      - alert: SwarmServiceReplicasMissing
+        # swarm_service_replicas_* vient de swarm-state-exporter.yml (docker
+        # service ls côté manager). C'est la seule alerte qui voit un service
+        # Swarm à 0/N : up{} ne dit rien d'un service sans aucune tâche (rien à
+        # scraper) et ContainerRestartLoop ne voit que des conteneurs vivants.
+        # Périmètre "critique" : la prod et l'infra dont dépend tout le reste.
+        expr: |
+          (swarm_service_replicas_desired{swarm_service=~".*-prod_.*|core_(traefik|registry|garage|prometheus|alertmanager|alertmanager-discord|loki)"}
+            - swarm_service_replicas_running) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service Swarm sans tous ses réplicas : {{ $labels.swarm_service }}"
+          description: "{{ $labels.swarm_service }} n'a pas tous ses réplicas depuis 5 minutes (docker service ps {{ $labels.swarm_service }} --no-trunc pour la cause)."
+
+      - alert: SwarmServiceReplicasMissingNonCritical
+        # Même condition pour le reste de core (observabilité, outils, services liés
+        # au nœud debian) : warning, pour ne pas noyer la prod. Le staging est
+        # volontairement hors périmètre : l'inclure ajouterait du bruit permanent
+        # tant que des services y restent à 0/N — remplacer par
+        # swarm_service!~".*-prod_.*|core_(...)" pour le couvrir aussi.
+        expr: |
+          (swarm_service_replicas_desired{swarm_service=~"core_.*",swarm_service!~"core_(traefik|registry|garage|prometheus|alertmanager|alertmanager-discord|loki)"}
+            - swarm_service_replicas_running) > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Service Swarm sans tous ses réplicas : {{ $labels.swarm_service }}"
+          description: "{{ $labels.swarm_service }} n'a pas tous ses réplicas depuis 15 minutes."
+
+      - alert: SwarmStateStale
+        # Garde-fou des deux alertes ci-dessus : si swarm-state-exporter ne met
+        # plus le fichier à jour (manager sans leader, tâche arrêtée), elles ne
+        # verraient plus rien et se résoudraient en silence.
+        # max() : on ne regarde que le fichier le plus récent. D'anciennes copies
+        # peuvent traîner dans le volume textfile d'un autre nœud (backup en a une
+        # du 06/10, de l'époque où l'exporter y tournait) et, évaluées une par une,
+        # déclencheraient l'alerte en permanence.
+        expr: |
+          time() - max(node_textfile_mtime_seconds{file="/textfile/swarm_nodes.prom"}) > 300
+            or
+          absent(node_textfile_mtime_seconds{file="/textfile/swarm_nodes.prom"})
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "État Swarm non rafraîchi"
+          description: "swarm-state-exporter n'a pas mis à jour swarm_nodes.prom depuis plus de 5 minutes — SwarmNodeDown et SwarmServiceReplicasMissing sont aveugles."
 
   - name: swarm-resources
     rules:

@@ -17,7 +17,10 @@ services:
       resources:
         limits:
           cpus: "0.3"
-          memory: 200M
+          # 200M plafonnait : le working set de cAdvisor sur node02 a atteint la
+          # limite (209,70 Mo sur 209,72) et il y était tué en boucle (exit 137),
+          # d'où des dizaines de cibles distinctes qui tombaient chaque jour.
+          memory: 400M
       restart_policy:
         condition: on-failure
 
