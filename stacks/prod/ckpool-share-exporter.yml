@@ -40,7 +40,8 @@ services:
           cpus: "0.5"
           memory: 128M
       restart_policy:
-        condition: on-failure
+        condition: any
+        delay: 5s
       labels:
         - "traefik.enable=true"
         - "traefik.http.routers.ckpool-share-exporter-prod.rule=Host(`ckpool.chauffagistes-btc.fr`)"
