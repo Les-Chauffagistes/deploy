@@ -1,0 +1,61 @@
+services:
+  app:
+    image: 172.16.0.3:5000/ckpool-share-exporter:0.1.0
+    environment:
+      DB_NAME: ckpool
+      DB_HOST: pg-ha-prod_haproxy
+      DB_USER: ckpool
+      BASE_LOG_DIR: /srv/ckpool/logs
+      POOL_INSTANCE_NAME: "{{.Node.Hostname}}"
+    command: >
+      sh -c "
+      export DB_PASSWORD=$$(cat /run/secrets/db_password) &&
+      exec python -m ckpool_share_exporter"
+    secrets:
+      - source: ckpool_prod_db_password
+        target: db_password
+    # group_add est ignoré par `docker stack deploy` ; on passe donc par user
+    user: "1000:1000" # UID/GID propriétaire des logs sur debian ; à revoir quand d'autres nœuds ckpool arrivent
+    volumes:
+      - type: bind
+        source: /srv/ckpool/logs # symlink!
+        target: /srv/ckpool/logs
+        read_only: true
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - pg-prod
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.labels.ckpool == true
+      update_config:
+        order: start-first
+        parallelism: 2
+        monitor: 60s
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.ckpool-share-exporter-prod.rule=Host(`ckpool.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.ckpool-share-exporter-prod.entrypoints=websecure"
+        - "traefik.http.routers.ckpool-share-exporter-prod.tls.certresolver=letsencrypt"
+        - "traefik.http.services.ckpool-share-exporter-prod.loadbalancer.server.port=8080"
+
+secrets:
+  ckpool_prod_db_password:
+    external: true
+
+networks:
+  chauffagistes-net:
+    external: true
+  pg-prod:
+    external: true
+  traefik-public:
+    external: true
