@@ -44,10 +44,10 @@ services:
         max_attempts: 3
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.pool-api.rule=Host(`api.staging.chauffagistes-btc.fr`)"
-        - "traefik.http.routers.pool-api.entrypoints=websecure"
-        - "traefik.http.routers.pool-api.tls.certresolver=letsencrypt"
-        - "traefik.http.services.pool-api.loadbalancer.server.port=8080"
+        - "traefik.http.routers.pool-api-staging.rule=Host(`api.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.pool-api-staging.entrypoints=websecure"
+        - "traefik.http.routers.pool-api-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.services.pool-api-staging.loadbalancer.server.port=8080"
 
 secrets:
   pool_api_staging_api_key:
