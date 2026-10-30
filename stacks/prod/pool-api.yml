@@ -1,0 +1,67 @@
+services:
+  app:
+    image: 172.16.0.3:5000/pool-api:1.0.0
+    environment:
+      SERVER_PORT: "8080"
+      PROMETHEUS_URL: "http://prometheus:9090"
+      DB_HOST: pg-ha-prod_haproxy
+      DB_NAME: ckpool
+      DB_USER: ckpool
+      HISTORY_DB_USER: history_server
+      HISTORY_DB_HOST: pg-ha-prod_haproxy
+      HISTORY_DB_NAME: history_server
+      REDIS_URL: redis://redis-ha-prod_haproxy:6379
+    secrets:
+      - source: pool_api_prod_api_key
+        target: pool_api_password
+      - source: ckpool_prod_db_password
+        target: db_password
+      - source: history_server_prod_db_password
+        target: history_db_password
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - pg-prod
+      - redis-prod
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      restart_policy:
+        condition: any
+        delay: 5s
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.pool-api.rule=Host(`api.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.pool-api.entrypoints=websecure"
+        - "traefik.http.routers.pool-api.tls.certresolver=letsencrypt"
+        - "traefik.http.services.pool-api.loadbalancer.server.port=8080"
+
+secrets:
+  pool_api_prod_api_key:
+    external: true
+  ckpool_prod_db_password:
+    external: true
+  history_server_prod_db_password:
+    external: true
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  pg-prod:
+    external: true
+  redis-prod:
+    external: true
