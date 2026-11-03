@@ -1,11 +1,12 @@
 services:
   app:
-    image: 172.16.0.3:5000/pool-site:1.1.3
+    image: 172.16.0.3:5000/pool-site:1.2.0
     environment:
       NODE_ENV: production
       DB_USER: pool_site
       DB_NAME: pool_site
       DB_HOST: pg-ha-prod_haproxy
+      POOL_SERVICE_API_URL: https://api.chauffagistes-btc.fr
       HOSTNAME: "0.0.0.0"
     secrets:
       - source: pool_site_prod_db_password

@@ -89,7 +89,7 @@ jobs:
         run: |
           cat > "$RUNNER_TEMP/ci.npmrc" <<EOF
           //npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
-          @chauffagistes:registry=http://172.16.0.3:4873/
+          @chauffagistes:registry=http://172.16.0.1:4873/
           //172.16.0.1:4873/:_authToken=${{ steps.verdaccio-auth.outputs.token }}
           //172.16.0.1:4873/:always-auth=true
           EOF

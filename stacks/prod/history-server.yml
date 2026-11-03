@@ -7,16 +7,17 @@ services:
       - DB_NAME=history_server
       - PORT=8050
       - GATHER_STATS=true
+      - STATS_URL=https://api.chauffagistes-btc.fr
     command: >
       sh -c "
       export DB_PASSWORD=$$(cat /run/secrets/history_server_db_password) &&
-      export STATS_API_TOKEN=$$(cat /run/secrets/history_server_stats_api_token) &&
+      export STATS_API_TOKEN=$$(cat /run/secrets/pool_api_key) &&
       python main.py"
     secrets:
       - source: history_server_prod_db_password
         target: history_server_db_password
-      - source: history_server_prod_stats_api_token
-        target: history_server_stats_api_token
+      - source: pool_api_prod_api_key
+        target: pool_api_key
     networks:
       - chauffagistes-net
       - traefik-public
@@ -56,5 +57,5 @@ networks:
 secrets:
   history_server_prod_db_password:
     external: true
-  history_server_prod_stats_api_token:
+  pool_api_prod_api_key:
     external: true

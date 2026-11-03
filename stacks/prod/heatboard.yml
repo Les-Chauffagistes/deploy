@@ -12,7 +12,7 @@ services:
       NEXTAUTH_URL: https://heatboard.chauffagistes-btc.fr
       COOKIE_DOMAIN: .chauffagistes-btc.fr
       BASE_URL: https://heatboard.chauffagistes-btc.fr
-      API_URL: https://chauffagistes-pool.fr:3000
+      API_URL: https://api.chauffagistes-btc.fr
       HISTORY_API_URL: https://history.chauffagistes-btc.fr
       BITCOIN_API_URL: https://bitcoin.chauffagistes-btc.fr
       AUTH_URL: https://auth.chauffagistes-btc.fr
@@ -56,9 +56,6 @@ services:
         - "traefik.http.routers.heatboard.entrypoints=websecure"
         - "traefik.http.routers.heatboard.tls.certresolver=letsencrypt"
         - "traefik.http.services.heatboard.loadbalancer.server.port=3000"
-
-volumes:
-  heatboard-db-data:
 
 networks:
   chauffagistes-net:
