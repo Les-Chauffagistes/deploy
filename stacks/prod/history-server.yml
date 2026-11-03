@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/history-server:1.0.3
+    image: 172.16.0.3:5000/history-server:1.1.0
     environment:
       - DB_HOST=pg-ha-prod_haproxy
       - DB_USER=history_server
