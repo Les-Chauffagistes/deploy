@@ -17,6 +17,7 @@ services:
         target: jwt_secret
     networks:
       - chauffagistes-net
+      - pg-staging
     deploy:
       replicas: 1
       placement:
@@ -39,6 +40,8 @@ services:
 
 networks:
   chauffagistes-net:
+    external: true
+  pg-staging:
     external: true
 
 secrets:
