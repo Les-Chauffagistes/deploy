@@ -4,9 +4,9 @@ services:
     environment:
       NODE_ENV: staging
       SERVER_PORT: "8095"
-      DB_HOST:  pg-ha-staging_haproxy
-      DB_USER: coins_services
-      DB_NAME: coins_services
+      DB_HOST: pg-ha-staging_haproxy
+      DB_USER: coins_service
+      DB_NAME: coins_service
       AUTH_SERVICE_URL: auth-service-back-staging_app:8080/auth
     secrets:
       - source: coins_staging_db_password
