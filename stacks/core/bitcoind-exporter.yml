@@ -48,7 +48,7 @@ configs:
   bitcoind_exporter_nodes:
     file: ./bitcoind-exporter.nodes.sh
     # Docker config immuable : bumper le nom à chaque modif du fichier.
-    name: bitcoind_exporter_nodes_v1
+    name: bitcoind_exporter_nodes_v2
 
 secrets:
   bitcoin_service_prod_rpc_password:

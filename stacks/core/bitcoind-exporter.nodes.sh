@@ -8,7 +8,7 @@
 # Un nœud absent de la table fait échouer la tâche plutôt que de scraper
 # un mauvais bitcoind.
 case "$NODE" in
-  debian)
+  ckpool-B)
     RPC_HOST=192.168.1.204
     RPC_PORT=8332
     RPC_USER=bitcoinrpc
