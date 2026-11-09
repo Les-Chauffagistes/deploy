@@ -1,0 +1,38 @@
+services:
+  app:
+    image: 172.16.0.3:5000/bitbot:1.0.0
+    environment:
+      SUPPORT_CATEGORY_ID: 1568297348050714705
+      ENVIRONMENT: production
+      BITCOIN_API_URL: https://bitcoin.chauffagistes-btc.fr
+    secrets:
+      - source: bitbot_prod_token
+        target: token
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+networks:
+  chauffagistes-net:
+    external: true
+
+secrets:
+  bitbot_prod_token:
+    external: true
