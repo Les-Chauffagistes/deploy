@@ -9,7 +9,6 @@ services:
       - source: bitbot_staging_token
         target: token
     networks:
-      - traefik-public
       - chauffagistes-net
     deploy:
       replicas: 1
