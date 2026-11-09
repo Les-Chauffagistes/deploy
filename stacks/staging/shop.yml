@@ -5,7 +5,7 @@ services:
       NODE_ENV: staging
       DB_USER: shop
       DB_NAME: shop
-      DB_HOST: shop-staging_db
+      DB_HOST: pg-ha-staging_haproxy
       HOSTNAME: "0.0.0.0"
       BASE_URL: shop.staging.chauffagistes-btc.fr
       AUTH_URL: https://auth.staging.chauffagistes-btc.fr
@@ -19,7 +19,7 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
-      - shop-staging-internal
+      - pg-staging
     deploy:
       replicas: 1
       placement:
@@ -46,52 +46,13 @@ services:
         - "traefik.http.routers.shop-staging.tls.certresolver=letsencrypt"
         - "traefik.http.services.shop-staging.loadbalancer.server.port=3000"
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: shop
-      POSTGRES_USER: shop
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - source: shop_staging_db_password
-        target: db_password
-    volumes:
-      - shop-staging-db-data:/var/lib/postgresql/data
-    networks:
-      - shop-staging-internal
-    stop_grace_period: 60s
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U shop"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.workload == true
-      update_config:
-        order: stop-first
-      restart_policy:
-        condition: any
-        delay: 5s
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-
-volumes:
-  shop-staging-db-data:
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
     external: true
-  shop-staging-internal:
-    driver: overlay
-    internal: true
+  pg-staging:
+    external: true
 
 secrets:
   shop_staging_db_password:
