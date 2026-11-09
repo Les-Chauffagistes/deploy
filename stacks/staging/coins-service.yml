@@ -1,10 +1,12 @@
 services:
   app:
-    image: 172.16.0.3:5000/coins-service:sha-2ce784f
+    image: 172.16.0.3:5000/coins-service:sha-5cfe0f9
     environment:
       NODE_ENV: staging
       SERVER_PORT: "8095"
-      DB_HOST: coins-service-staging_db
+      DB_HOST:  pg-ha-staging_haproxy
+      DB_USER: coins_services
+      DB_NAME: coins_services
       AUTH_SERVICE_URL: auth-service-back-staging_app:8080/auth
     secrets:
       - source: coins_staging_db_password
@@ -15,7 +17,6 @@ services:
         target: jwt_secret
     networks:
       - chauffagistes-net
-      - coins-staging-internal
     deploy:
       replicas: 1
       placement:
@@ -36,58 +37,9 @@ services:
           cpus: "0.5"
           memory: 256M
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: coins
-      POSTGRES_USER: coins
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - source: coins_staging_db_password
-        target: db_password
-    volumes:
-      - coins-staging-db-data:/var/lib/postgresql/data
-    networks:
-      - coins-staging-internal
-      - coins-staging-db-expose
-    ports:
-      - target: 5432
-        published: 5435
-        protocol: tcp
-        mode: host
-    stop_grace_period: 60s
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U coins"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.workload == true
-      update_config:
-        order: stop-first
-      restart_policy:
-        condition: any
-        delay: 5s
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 256M
-
-volumes:
-  coins-staging-db-data:
-
 networks:
   chauffagistes-net:
     external: true
-  coins-staging-internal:
-    driver: overlay
-    internal: true
-  coins-staging-db-expose:
-    driver: overlay
 
 secrets:
   coins_staging_db_password:
