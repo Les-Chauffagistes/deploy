@@ -1,0 +1,39 @@
+services:
+  app:
+    image: 172.16.0.3:5000/bitbot:sha-5dd9583
+    environment:
+      SUPPORT_CATEGORY_ID: 1568297348050714705
+      ENVIRONMENT: production
+      BITCOIN_API_URL: https://bitcoin.staging.chauffagistes-btc.fr
+    secrets:
+      - source: bitbot_staging_token
+        target: token
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+networks:
+  chauffagistes-net:
+    external: true
+
+secrets:
+  bitbot_staging_token:
+    external: true

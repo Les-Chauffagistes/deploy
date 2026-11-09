@@ -187,25 +187,34 @@ groups:
           summary: "bitcoind en échec sur {{ $labels.node }}"
           description: "Le service systemd bitcoind.service est dans l'état failed sur {{ $labels.node }} depuis plus de 2 minutes."
 
+      # Nœuds bitcoind = label Swarm `bitcoind=true`, exposé par
+      # swarm-state-exporter.sh (swarm_node_bitcoind) : le SD Swarm en role: tasks
+      # ne fournit pas les labels de nœud. Jointure sur `node` (hostname).
       - alert: BitcoindDiskNotMounted
-        expr: absent(node_filesystem_avail_bytes{node="debian", mountpoint="/mnt/bitcoin"})
+        expr: |
+          absent(
+            node_filesystem_avail_bytes{mountpoint="/mnt/bitcoin"}
+              and on(node) label_replace(swarm_node_bitcoind, "node", "$1", "swarm_node", "(.*)")
+          )
         for: 10m
         labels:
           severity: critical
         annotations:
-          summary: "Disque bitcoind non monté sur debian"
-          description: "Aucune métrique de système de fichiers pour /mnt/bitcoin sur debian depuis 10 minutes — le disque externe de la blockchain n'est probablement plus monté."
+          summary: "Disque bitcoind non monté"
+          description: "Aucune métrique de système de fichiers pour /mnt/bitcoin sur un nœud bitcoind depuis 10 minutes — le disque externe de la blockchain n'est probablement plus monté."
 
       - alert: BitcoindDiskSpaceLow
         expr: |
-          node_filesystem_avail_bytes{node="debian", mountpoint="/mnt/bitcoin"}
-            / node_filesystem_size_bytes{node="debian", mountpoint="/mnt/bitcoin"} < 0.1
+          (
+            node_filesystem_avail_bytes{mountpoint="/mnt/bitcoin"}
+              / node_filesystem_size_bytes{mountpoint="/mnt/bitcoin"} < 0.1
+          ) and on(node) label_replace(swarm_node_bitcoind, "node", "$1", "swarm_node", "(.*)")
         for: 10m
         labels:
           severity: warning
         annotations:
           summary: "Espace disque faible pour bitcoind"
-          description: "Moins de 10% d'espace disque restant sur /mnt/bitcoin (nœud debian)."
+          description: "Moins de 10% d'espace disque restant sur /mnt/bitcoin (nœud {{ $labels.node }})."
 
       - alert: BitcoindNoPeers
         # bitcoin_peers vient de bitcoind-exporter (stacks/core/bitcoind-exporter.yml)
