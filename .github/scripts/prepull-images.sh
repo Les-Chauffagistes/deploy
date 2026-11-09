@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # Pré-télécharge sur tous les nœuds workload les images de notre registry
 # référencées par les stack files passés en argument, via un service Swarm
-# global-job par image (pas besoin d'accès SSH aux nœuds). Si le nœud qui
+# global par image (pas besoin d'accès SSH aux nœuds). Si le nœud qui
 # héberge le registry tombe, les autres ont déjà les images en cache.
+#
+# Mode `global` + `--restart-condition none` et non `global-job` : Swarm
+# (testé en 26.1.5) recrée en boucle les tâches d'un job terminé (10 par nœud,
+# donc ~10 conteneurs lancés en même temps par image et par nœud). En `global`
+# simple, il y a une seule tâche par nœud, qui reste `Complete`.
 #
 # Usage : prepull-images.sh stacks/prod/*.yml
 set -uo pipefail
@@ -22,7 +27,7 @@ trap cleanup EXIT
 for image in "${images[@]}"; do
   repo="${image#"$REGISTRY"/}"
   name="prepull-${run_id}-${repo%%[:@]*}"
-  if docker service create --detach --quiet --name "$name" --mode global-job \
+  if docker service create --detach --quiet --name "$name" --mode global \
       --constraint "node.labels.workload == true" --with-registry-auth \
       --restart-condition none --entrypoint true "$image" >/dev/null; then
     jobs+=("$name")
