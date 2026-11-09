@@ -37,6 +37,11 @@ scrape_configs:
         action: keep
       - source_labels: [__meta_dockerswarm_node_hostname]
         target_label: node
+      # Label de nœud Swarm `bitcoind=true` : les alertes bitcoind filtrent dessus
+      # plutôt que sur le hostname, pour survivre à un renommage de machine.
+      - source_labels: [__meta_dockerswarm_node_label_bitcoind]
+        regex: 'true'
+        target_label: bitcoind
       - source_labels: [__address__]
         regex: '([^:]+):.*'
         target_label: __address__
