@@ -187,8 +187,15 @@ groups:
           summary: "bitcoind en échec sur {{ $labels.node }}"
           description: "Le service systemd bitcoind.service est dans l'état failed sur {{ $labels.node }} depuis plus de 2 minutes."
 
+      # Nœuds bitcoind = label Swarm `bitcoind=true`, exposé par
+      # swarm-state-exporter.sh (swarm_node_bitcoind) : le SD Swarm en role: tasks
+      # ne fournit pas les labels de nœud. Jointure sur `node` (hostname).
       - alert: BitcoindDiskNotMounted
-        expr: absent(node_filesystem_avail_bytes{bitcoind="true", mountpoint="/mnt/bitcoin"})
+        expr: |
+          absent(
+            node_filesystem_avail_bytes{mountpoint="/mnt/bitcoin"}
+              and on(node) label_replace(swarm_node_bitcoind, "node", "$1", "swarm_node", "(.*)")
+          )
         for: 10m
         labels:
           severity: critical
@@ -198,8 +205,10 @@ groups:
 
       - alert: BitcoindDiskSpaceLow
         expr: |
-          node_filesystem_avail_bytes{bitcoind="true", mountpoint="/mnt/bitcoin"}
-            / node_filesystem_size_bytes{bitcoind="true", mountpoint="/mnt/bitcoin"} < 0.1
+          (
+            node_filesystem_avail_bytes{mountpoint="/mnt/bitcoin"}
+              / node_filesystem_size_bytes{mountpoint="/mnt/bitcoin"} < 0.1
+          ) and on(node) label_replace(swarm_node_bitcoind, "node", "$1", "swarm_node", "(.*)")
         for: 10m
         labels:
           severity: warning

@@ -13,13 +13,14 @@ TMP_FILE="$OUT_FILE.tmp"
 INTERVAL="${INTERVAL:-30}"
 
 while true; do
-  # Les deux appels doivent réussir avant de réécrire le fichier : sans leader
+  # Les trois appels doivent réussir avant de réécrire le fichier : sans leader
   # Swarm (ou manager injoignable), on laisse l'ancien fichier vieillir —
   # SwarmStateStale (prometheus.rules.yaml) le détecte — plutôt que de publier
   # un fichier vide dont l'absence de séries ferait résoudre silencieusement
   # toutes les alertes SwarmNode*/SwarmService*.
   if nodes=$(docker node ls --format '{{.Hostname}}|{{.Status}}|{{.Availability}}|{{.ManagerStatus}}') &&
-     services=$(docker service ls --format '{{.Name}}|{{.Mode}}|{{.Replicas}}'); then
+     services=$(docker service ls --format '{{.Name}}|{{.Mode}}|{{.Replicas}}') &&
+     bitcoind_nodes=$(docker node inspect $(docker node ls -q) --format '{{.Description.Hostname}}|{{index .Spec.Labels "bitcoind"}}'); then
     {
       echo '# HELP swarm_node_info Info statique sur un nœud Swarm (docker node ls). Valeur toujours 1.'
       echo '# TYPE swarm_node_info gauge'
@@ -27,6 +28,8 @@ while true; do
       echo '# TYPE swarm_node_ready gauge'
       echo '# HELP swarm_node_active La disponibilité du nœud Swarm est Active (1) ou non — Pause/Drain (0).'
       echo '# TYPE swarm_node_active gauge'
+      echo '# HELP swarm_node_bitcoind Le nœud porte le label Swarm bitcoind=true. Série absente sinon ; sert aux alertes bitcoind (jointure sur le nom du nœud, indépendante du hostname).'
+      echo '# TYPE swarm_node_bitcoind gauge'
       echo '# HELP swarm_service_replicas_running Réplicas en cours d exécution (docker service ls, premier nombre de REPLICAS).'
       echo '# TYPE swarm_service_replicas_running gauge'
       echo '# HELP swarm_service_replicas_desired Réplicas voulus (docker service ls, second nombre de REPLICAS).'
@@ -43,6 +46,14 @@ while true; do
             "$hostname" "$status" "$availability" "$manager_status"
           printf 'swarm_node_ready{swarm_node="%s"} %s\n' "$hostname" "$ready"
           printf 'swarm_node_active{swarm_node="%s"} %s\n' "$hostname" "$active"
+        done
+
+      printf '%s\n' "$bitcoind_nodes" |
+        while IFS='|' read -r hostname bitcoind; do
+          # if et non `[ ] &&` : un dernier test faux ferait sortir le script (set -e).
+          if [ "$bitcoind" = "true" ]; then
+            printf 'swarm_node_bitcoind{swarm_node="%s"} 1\n' "$hostname"
+          fi
         done
 
       printf '%s\n' "$services" |
