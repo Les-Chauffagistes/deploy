@@ -59,8 +59,9 @@ services:
       - history-server-internal
     ports:
       - target: 5432
-        published: 5453
+        published: 5432
         protocol: tcp
+        mode: host
     volumes:
       - history-server-pgdata:/home/postgres/pgdata/data
     stop_grace_period: 60s
