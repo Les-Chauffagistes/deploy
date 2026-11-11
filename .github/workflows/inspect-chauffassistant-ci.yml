@@ -1,9 +1,6 @@
 name: Inspect ChauffAssistant CI
 on:
   workflow_dispatch:
-  push:
-    branches: [develop]
-    paths: [.github/workflows/inspect-chauffassistant-ci.yml]
 permissions:
   contents: read
 jobs:
