@@ -1,10 +1,6 @@
 name: Configure ChauffAssistant registry
 
 on:
-  # Bootstrap once; switch to manual-only after the authorised setup succeeds.
-  push:
-    branches: [develop]
-    paths: ['.github/workflows/sync-chauffassistant-registry.yml']
   workflow_dispatch:
 
 permissions:
