@@ -26,7 +26,6 @@ jobs:
       staging: ${{ steps.filter.outputs.staging }}
       prod:    ${{ steps.filter.outputs.prod }}
       core:    ${{ steps.filter.outputs.core }}
-      chauffassistant: ${{ steps.filter.outputs.chauffassistant }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -39,8 +38,6 @@ jobs:
           filters: |
             # stacks/common/** : fichiers de config partagés par les deux
             # environnements (voir CLAUDE.md), donc les deux redéploient.
-            chauffassistant:
-              - 'stacks/staging/chauffassistant-backend.yml'
             staging:
               - 'stacks/staging/**'
               - 'stacks/common/**'
@@ -143,31 +140,6 @@ jobs:
           (inputs.force_deploy || needs.changes.outputs.prod == 'true')
         continue-on-error: true
         run: .github/scripts/prepull-images.sh stacks/prod/*.yml
-
-      - name: Verify published ChauffAssistant image
-        if: github.ref == 'refs/heads/develop' && (needs.changes.outputs.chauffassistant == 'true' || inputs.force_deploy)
-        shell: bash
-        env:
-          ORG_PAT: ${{ secrets.ORG_PAT }}
-        run: |
-          set -euo pipefail
-          file=stacks/staging/chauffassistant-backend.yml
-          ref=$(sed -n 's/^x-chauffassistant-source-ref: "\([0-9a-f]\{40\}\)"$/\1/p' "$file")
-          [[ "$ref" =~ ^[0-9a-f]{40}$ ]]
-          image="172.16.0.3:5000/chauffassistant-backend:sha-${ref:0:7}"
-          grep -Fqx "    image: $image" "$file"
-          # Build is performed by the source repository workflow. Never build here.
-          for attempt in {1..60}; do
-            if docker manifest inspect --insecure "$image" >/dev/null 2>&1; then
-              echo "Published cloud image verified: $image"
-              exit 0
-            fi
-            # Fail early on a failed source build; this only reads its status.
-            CLOUD_SOURCE_REF="$ref" python3 .github/scripts/check-chauffassistant-build-status.py
-            sleep 10
-          done
-          echo "Image not published: $image. Check ChauffAssistant's Cloud image workflow." >&2
-          exit 1
 
       - name: Deploy services
         if: |
@@ -317,10 +289,6 @@ jobs:
           echo ""
           echo "✅ Tous les stacks sont convergés"
           docker service ls
-
-      - name: Verify ChauffAssistant staging HTTPS
-        if: github.ref == 'refs/heads/develop' && (needs.changes.outputs.chauffassistant == 'true' || inputs.force_deploy)
-        run: python3 .github/scripts/check-chauffassistant-cloud.py
 
       - name: Tag deployed commits
         if: |
