@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/pool-site:sha-ae09f3e
+    image: 172.16.0.3:5000/pool-site:sha-ec1f703
     environment:
       NODE_ENV: staging
       DB_USER: pool_site
