@@ -1,9 +1,9 @@
 # Prebuilt image from ChauffAssistant/Cloud image; Deploy verifies publication and source build status.
-x-chauffassistant-source-ref: "2238038c1bac543b837eff1cf7e22fef15441ffd"
+x-chauffassistant-source-ref: "b8d9e7dd0f6683fbebd359bbfbc6a4b525934b16"
 
 services:
   app:
-    image: 172.16.0.3:5000/chauffassistant-backend:sha-2238038
+    image: 172.16.0.3:5000/chauffassistant-backend:sha-b8d9e7d
     environment:
       HTTP_ADDR: ":8080"
       CLOUD_STATE_DIR: /state
