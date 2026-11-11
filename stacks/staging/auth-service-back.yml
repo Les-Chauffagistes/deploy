@@ -1,11 +1,11 @@
 services:
   app:
-    image: 172.16.0.3:5000/auth-service-back:sha-0834ade
+    image: 172.16.0.3:5000/auth-service-back:sha-dff1ab3
     environment:
       SERVER_PORT: "8080"
       DISCORD_CLIENT_ID: "1100450456091766907"
       DISCORD_CALLBACK_URL: https://api.auth.staging.chauffagistes-btc.fr/discord/callback
-      LIGHTNING_CALLBACK_URL: https://auth.staging.chauffagistes-btc.fr/lightning/callback
+      LIGHTNING_CALLBACK_URL: https://api.auth.staging.chauffagistes-btc.fr/lightning/callback
       DB_HOST: pg-ha-staging_haproxy
       DB_USER: auth_services
       DB_NAME: auth_services
