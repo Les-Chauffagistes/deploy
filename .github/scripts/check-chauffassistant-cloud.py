@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-BASE = "https://chauffassistant-backend.staging.chauffagistes-btc.fr"
+BASE = "https://api.chauffassistant.staging.chauffagistes-btc.fr"
 stack = Path("stacks/staging/chauffassistant-backend.yml").read_text()
 match = re.search(r'^x-chauffassistant-source-ref: "([0-9a-f]{40})"$', stack, re.M)
 if not match:
