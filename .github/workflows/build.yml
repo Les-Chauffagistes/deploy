@@ -7,6 +7,16 @@ on:
         description: "Nom du service"
         required: true
         type: string
+      dockerfile:
+        description: "Dockerfile à construire"
+        required: false
+        type: string
+        default: "Dockerfile"
+      private-dependencies:
+        description: "Configurer les index privés npm/pip (désactivable pour les services Go)"
+        required: false
+        type: boolean
+        default: true
       build-target:
         description: "Stage Docker cible (ex: runner, migrator). Vide = image complète"
         required: false
@@ -22,11 +32,11 @@ on:
       REGISTRY_PASSWORD:
         required: true
       VERDACCIO_PASSWORD:
-        required: true
+        required: false
       PYPISERVER_PASSWORD:
-        required: true
+        required: false
       ORG_PAT:
-        required: true
+        required: false
 
 env:
   REGISTRY: 172.16.0.3:5000
@@ -68,6 +78,7 @@ jobs:
       # pypiserver ou GitHub Packages : il faut échanger user/password contre un
       # token de session à chaque run (même mécanique que release.yml de chauff-cmn).
       - name: Get verdaccio auth token
+        if: inputs.private-dependencies
         id: verdaccio-auth
         run: |
           TOKEN=$(curl -s -u "${{ secrets.REGISTRY_USER }}:${{ secrets.VERDACCIO_PASSWORD }}" \
@@ -86,6 +97,7 @@ jobs:
       # `secrets:` de build-push-action ne supporte qu'une valeur par ligne, donc on
       # passe par un fichier + `secret-files:` pour le secret "npmrc".
       - name: Write CI .npmrc
+        if: inputs.private-dependencies
         run: |
           cat > "$RUNNER_TEMP/ci.npmrc" <<EOF
           //npm.pkg.github.com/:_authToken=${{ secrets.ORG_PAT }}
@@ -98,15 +110,14 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ${{ inputs.dockerfile }}
           push: true
           target: ${{ inputs.build-target }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ inputs.build-args }}
-          secrets: |
-            pipindex=http://${{ secrets.REGISTRY_USER }}:${{ secrets.PYPISERVER_PASSWORD }}@172.16.0.1:8081/simple/
-          secret-files: |
-            npmrc=${{ runner.temp }}/ci.npmrc
+          secrets: ${{ inputs.private-dependencies && format('pipindex=http://{0}:{1}@172.16.0.1:8081/simple/', secrets.REGISTRY_USER, secrets.PYPISERVER_PASSWORD) || '' }}
+          secret-files: ${{ inputs.private-dependencies && format('npmrc={0}/ci.npmrc', runner.temp) || '' }}
 
       - name: Summary
         run: |
