@@ -26,6 +26,7 @@ jobs:
       staging: ${{ steps.filter.outputs.staging }}
       prod:    ${{ steps.filter.outputs.prod }}
       core:    ${{ steps.filter.outputs.core }}
+      chauffassistant: ${{ steps.filter.outputs.chauffassistant }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -38,6 +39,8 @@ jobs:
           filters: |
             # stacks/common/** : fichiers de config partagés par les deux
             # environnements (voir CLAUDE.md), donc les deux redéploient.
+            chauffassistant:
+              - 'stacks/staging/chauffassistant-backend.yml'
             staging:
               - 'stacks/staging/**'
               - 'stacks/common/**'
@@ -95,19 +98,82 @@ jobs:
           fi
           echo "✅ Toutes les images prod sont versionnées"
 
+  # Build the private cloud source before the staging stack references its image.
+  build-chauffassistant-cloud:
+    name: Build ChauffAssistant cloud (staging)
+    runs-on: [self-hosted, worker]
+    needs: [changes]
+    if: >-
+      github.ref == 'refs/heads/develop' &&
+      (needs.changes.outputs.chauffassistant == 'true' || inputs.force_deploy)
+    environment: staging
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout deployment configuration
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate source and image pin
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=stacks/staging/chauffassistant-backend.yml
+          ref=$(sed -n 's/^x-chauffassistant-source-ref: "\([0-9a-f]\{40\}\)"$/\1/p' "$file")
+          [[ "$ref" =~ ^[0-9a-f]{40}$ ]]
+          image="172.16.0.3:5000/chauffassistant-backend:sha-${ref:0:7}"
+          grep -Fqx "    image: $image" "$file"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+      - name: Checkout private cloud source
+        uses: actions/checkout@v4
+        with:
+          repository: Les-Chauffagistes/ChauffAssistant
+          ref: ${{ steps.source.outputs.ref }}
+          token: ${{ secrets.ORG_PAT || github.token }}
+          path: cloud-source
+          persist-credentials: false
+      - name: Log in to private registry
+        uses: docker/login-action@v3
+        with:
+          registry: 172.16.0.3:5000
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Test cloud source
+        shell: bash
+        run: |
+          docker run --rm \
+            --mount "type=bind,source=$GITHUB_WORKSPACE/cloud-source,target=/src,readonly" \
+            --workdir /src --env GOCACHE=/tmp/go-cache \
+            golang:1.23-bookworm go test -race ./internal/cloud ./internal/cloudagent ./internal/remote ./cmd/cloud
+      - name: Build and push cloud image
+        shell: bash
+        env:
+          CLOUD_IMAGE: ${{ steps.source.outputs.image }}
+          CLOUD_REVISION: ${{ steps.source.outputs.ref }}
+        run: |
+          set -euo pipefail
+          docker build --pull -f cloud-source/Dockerfile.cloud \
+            --build-arg VERSION=staging --build-arg "REVISION=$CLOUD_REVISION" \
+            -t "$CLOUD_IMAGE" cloud-source
+          docker push "$CLOUD_IMAGE"
+
   # ─────────────────────────────────────────────
   # Deploy
   # ─────────────────────────────────────────────
   deploy:
     name: Deploy (${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }})
     runs-on: [self-hosted, manager]
-    needs: [changes, guard-prod-images]
+    needs: [changes, guard-prod-images, build-chauffassistant-cloud]
     # Déployer si :
     # - guard skippé (pas de changement prod ou branche develop) ou guard passé
     # - ET au moins un dossier a changé, ou le déclenchement est forcé
     if: |
       always() &&
       (needs.guard-prod-images.result == 'success' || needs.guard-prod-images.result == 'skipped') &&
+      (needs.build-chauffassistant-cloud.result == 'success' || needs.build-chauffassistant-cloud.result == 'skipped') &&
       (inputs.force_deploy || needs.changes.outputs.core == 'true' || needs.changes.outputs.staging == 'true' || needs.changes.outputs.prod == 'true')
     environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
 
@@ -289,6 +355,10 @@ jobs:
           echo ""
           echo "✅ Tous les stacks sont convergés"
           docker service ls
+
+      - name: Verify ChauffAssistant staging HTTPS
+        if: github.ref == 'refs/heads/develop' && needs.build-chauffassistant-cloud.result == 'success'
+        run: python3 .github/scripts/check-chauffassistant-cloud.py
 
       - name: Tag deployed commits
         if: |

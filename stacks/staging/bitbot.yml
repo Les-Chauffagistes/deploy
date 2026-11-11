@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/bitbot:sha-3d6b73f
+    image: 172.16.0.3:5000/bitbot:sha-2b322ad
     environment:
       SUPPORT_CATEGORY_ID: 1568297348050714705
       ENVIRONMENT: production
