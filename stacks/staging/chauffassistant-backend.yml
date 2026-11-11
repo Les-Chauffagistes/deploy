@@ -1,4 +1,4 @@
-# Image is built and published by ChauffAssistant/Cloud image; Deploy verifies publication.
+# Prebuilt image from ChauffAssistant/Cloud image; Deploy verifies publication and source build status.
 x-chauffassistant-source-ref: "2238038c1bac543b837eff1cf7e22fef15441ffd"
 
 services:
