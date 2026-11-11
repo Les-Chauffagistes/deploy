@@ -147,7 +147,7 @@ jobs:
           docker run --rm \
             --mount "type=bind,source=$GITHUB_WORKSPACE/cloud-source,target=/src,readonly" \
             --workdir /src --env GOCACHE=/tmp/go-cache \
-            golang:1.23-bookworm go test ./internal/cloud ./cmd/cloud
+            golang:1.23-bookworm go test -race ./internal/cloud ./internal/cloudagent ./internal/remote ./cmd/cloud
       - name: Build and push cloud image
         shell: bash
         env:

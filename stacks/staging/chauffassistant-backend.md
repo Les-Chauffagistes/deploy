@@ -3,9 +3,17 @@
 URL : https://chauffassistant-backend.staging.chauffagistes-btc.fr
 
 Le service `chauffassistant-backend-staging_app` s’exécute sur le VPS, sans accès
-aux équipements locaux. Cette première étape est le socle HTTP ; authentification
-avec les comptes Chauffagistes et relais des installations sont encore à implémenter.
-Les endpoints publics indiquent explicitement `remote_access_enabled: false`.
+aux équipements locaux. Le service réutilise l’authentification Chauffagistes et relaie les requêtes
+vers les agents sortants des installations explicitement associées.
+Les endpoints publics indiquent `remote_access_enabled: true` ; les API de compte,
+d’association et de relais exigent une authentification. Le matériel local n’est
+jamais disponible directement sur les routes publiques historiques.
+
+Le volume `chauffassistant_cloud_state` conserve les sessions hachées et les
+associations dans `/state`, propriétaire UID 65532. Une seule réplique doit être
+utilisée ; les files de relais et les confirmations de connexion sont en mémoire.
+Le service d’authentification existant est joint via le réseau Swarm. Aucun secret
+JWT n’est copié dans ChauffAssistant et aucune nouvelle base de comptes n’est créée.
 
 La branche `develop` déclenche le workflow Deploy :
 
@@ -17,7 +25,7 @@ La branche `develop` déclenche le workflow Deploy :
 
 Secrets GitHub utilisés par la CI : `ORG_PAT` (lecture du dépôt source privé),
 `REGISTRY_USER`, `REGISTRY_PASSWORD`. Aucun nouveau secret Swarm n’est requis
-pour cette première étape. Le secret ORG_PAT est déjà utilisé ailleurs dans ce dépôt ;
+pour ce service. Le secret ORG_PAT est déjà utilisé ailleurs dans ce dépôt ;
 il doit aussi autoriser la lecture de ChauffAssistant.
 
 Mettre à jour la référence de 40 caractères et le tag `sha-<7 caractères>` ensemble.

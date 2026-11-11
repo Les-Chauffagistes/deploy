@@ -21,7 +21,7 @@ while time.monotonic() < deadline:
             with urllib.request.urlopen(BASE + path, timeout=8) as response:
                 data = json.load(response)
             assert data["status"] == "ok" and data["mode"] == "cloud", data
-            assert data["remote_access_enabled"] is False, data
+            assert data["remote_access_enabled"] is True, data
             assert data["revision"] == expected, data
         break
     except (OSError, ValueError, KeyError, AssertionError) as error:
@@ -38,4 +38,12 @@ for path in ("/api/v1/devices", "/api/v1/heating", "/api/v1/installation"):
             continue
         raise SystemExit(f"Unexpected HTTP {error.code} for {path}")
     raise SystemExit("Local API unexpectedly exposed: " + path)
-print("ChauffAssistant cloud HTTPS and revision verified; local hardware APIs absent.")
+for path in ("/api/v1/account", "/api/v1/installations"):
+    try:
+        urllib.request.urlopen(BASE + path, timeout=8).close()
+    except urllib.error.HTTPError as error:
+        if error.code == 401:
+            continue
+        raise SystemExit(f"Unexpected HTTP {error.code} for {path}")
+    raise SystemExit("Unauthenticated account API unexpectedly accessible: " + path)
+print("ChauffAssistant cloud HTTPS and revision verified; accounts require authentication and local hardware APIs are absent.")
