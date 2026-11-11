@@ -1,0 +1,53 @@
+# Source must be published before pushing this stack. CI builds this exact commit.
+x-chauffassistant-source-ref: "b054d070a82177d4bd3a9cbf4c1a6bd43802b120"
+
+services:
+  app:
+    image: 172.16.0.3:5000/chauffassistant-backend:sha-b054d07
+    environment:
+      HTTP_ADDR: ":8080"
+    read_only: true
+    stop_grace_period: 15s
+    networks:
+      - traefik-public
+      - chauffagistes-net
+    healthcheck:
+      test: ["CMD", "/cloud", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == vps
+      update_config:
+        order: stop-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+        reservations:
+          memory: 16M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.chauffassistant-backend-staging.rule=Host(`chauffassistant-backend.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.chauffassistant-backend-staging.entrypoints=websecure"
+        - "traefik.http.routers.chauffassistant-backend-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.chauffassistant-backend-staging.service=chauffassistant-backend-staging"
+        - "traefik.http.services.chauffassistant-backend-staging.loadbalancer.server.port=8080"
+
+networks:
+  traefik-public:
+    external: true
+  chauffagistes-net:
+    external: true
