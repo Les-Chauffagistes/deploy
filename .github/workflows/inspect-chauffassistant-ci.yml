@@ -1,0 +1,41 @@
+name: Inspect ChauffAssistant CI
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths: [.github/workflows/inspect-chauffassistant-ci.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: [self-hosted, manager]
+    environment: staging
+    container: python:3.13-slim
+    timeout-minutes: 3
+    steps:
+      - name: Read source CI failure metadata
+        env:
+          ORG_PAT: ${{ secrets.ORG_PAT }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          base = 'https://api.github.com/repos/Les-Chauffagistes/ChauffAssistant'
+          def get(path):
+              req = urllib.request.Request(base + path, headers={'Authorization': 'Bearer ' + os.environ['ORG_PAT'], 'Accept': 'application/vnd.github+json'})
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  return json.load(response)
+          def notice(message):
+              print('::notice::' + str(message).replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A'))
+          runs = get('/actions/workflows/ci.yml/runs?branch=main&per_page=3')['workflow_runs']
+          for run in runs:
+              notice(str(run['id']) + ' ' + run['head_sha'] + ' ' + run['status'] + ' ' + str(run['conclusion']))
+              for job in get('/actions/runs/' + str(run['id']) + '/jobs')['jobs']:
+                  notice(job['name'] + ': ' + str(job['conclusion']))
+                  if job['conclusion'] == 'failure':
+                      for step in job.get('steps', []):
+                          if step['conclusion'] == 'failure':
+                              notice('Failed step: ' + step['name'])
+                      check_id = job['check_run_url'].rsplit('/', 1)[-1]
+                      for annotation in get('/check-runs/' + check_id + '/annotations')[:12]:
+                          notice(annotation.get('message', '')[:6000])
+          PY
