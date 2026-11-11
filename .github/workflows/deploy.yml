@@ -147,6 +147,8 @@ jobs:
       - name: Verify published ChauffAssistant image
         if: github.ref == 'refs/heads/develop' && (needs.changes.outputs.chauffassistant == 'true' || inputs.force_deploy)
         shell: bash
+        env:
+          ORG_PAT: ${{ secrets.ORG_PAT }}
         run: |
           set -euo pipefail
           file=stacks/staging/chauffassistant-backend.yml
@@ -160,6 +162,8 @@ jobs:
               echo "Published cloud image verified: $image"
               exit 0
             fi
+            # Fail early on a failed source build; this only reads its status.
+            CLOUD_SOURCE_REF="$ref" python3 .github/scripts/check-chauffassistant-build-status.py
             sleep 10
           done
           echo "Image not published: $image. Check ChauffAssistant's Cloud image workflow." >&2
