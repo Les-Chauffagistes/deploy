@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/hash-contenders-referee:sha-d62df04
+    image: 172.16.0.3:5000/hash-contenders-referee:sha-36bd632
     environment:
       SERVER_PORT: "8095"
       DB_USER: contenders_referee
@@ -27,7 +27,7 @@ services:
         constraints:
           - node.labels.workload == true
       update_config:
-        order: stop-first
+        order: start-first
         monitor: 60s
         failure_action: rollback
       rollback_config:
