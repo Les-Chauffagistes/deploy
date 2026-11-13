@@ -1,0 +1,48 @@
+services:
+  app:
+    image: 172.16.0.3:5000/chauffassistant-site:sha-71d0cf0
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      HOSTNAME: "0.0.0.0"
+      PORT: "3000"
+    networks:
+      - traefik-public
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 32M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.chauffassistant-site-staging.rule=Host(`chauffassistant.staging.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.chauffassistant-site-staging.entrypoints=websecure"
+        - "traefik.http.routers.chauffassistant-site-staging.tls.certresolver=letsencrypt"
+        - "traefik.http.routers.chauffassistant-site-staging.service=chauffassistant-site-staging"
+        - "traefik.http.services.chauffassistant-site-staging.loadbalancer.server.port=3000"
+
+networks:
+  traefik-public:
+    external: true
