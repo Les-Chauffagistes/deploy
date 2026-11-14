@@ -20,7 +20,10 @@ services:
           # 200M plafonnait : le working set de cAdvisor sur node02 a atteint la
           # limite (209,70 Mo sur 209,72) et il y était tué en boucle (exit 137),
           # d'où des dizaines de cibles distinctes qui tombaient chaque jour.
-          memory: 400M
+          # 400M plafonne à son tour sur workload-A (itrider, Docker 29.5.0) : working
+          # set entre 220 et 400 Mo, tué en boucle (exit 137) alors que les autres
+          # nœuds restent sous 130 Mo.
+          memory: 800M
       restart_policy:
         condition: on-failure
 
