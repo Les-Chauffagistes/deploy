@@ -14,6 +14,13 @@ services:
       - chauffagistes-net
     deploy:
       mode: global
+      # Par défaut Swarm met à jour une tâche à la fois : sur 6 nœuds, le rollout
+      # a pris ~3 min 40 et dépassé le timeout de 180 s de « Verify convergence »
+      # (CI en échec alors que le déploiement avait réussi). Tout en parallèle :
+      # le trou de scrape dure quelques secondes, bien en deçà des 10 min de
+      # ScrapeTargetDown.
+      update_config:
+        parallelism: 0
       resources:
         limits:
           cpus: "0.3"
