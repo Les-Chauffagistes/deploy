@@ -37,6 +37,22 @@ stacks/
   debug/      # Outils ponctuels, jamais déployés par la CI
 ```
 
+## Configs Swarm : toujours bumper la version
+
+Les configs Docker sont **immuables**. Toute modification du contenu d'un fichier référencé dans
+`configs:` d'un stack (règles Prometheus/Loki, config Promtail/Alertmanager, dashboards Grafana,
+entrypoints/HAProxy/Patroni de `stacks/common/`, scripts...) **exige d'incrémenter le suffixe `_vN`
+du nom de la config** dans le fichier de stack, sinon `docker stack deploy` échoue
+(« config changed, cannot update »).
+
+- Le nom est dans le bloc `configs:` en bas du stack (`name: prometheus_rules_v16` ou clé
+  `loki_rules_v6:`). La clé du service (`source:`) doit suivre si elle porte le nom versionné.
+- Repérer toutes les configs concernées : `grep -rnE "_v[0-9]+" stacks/`.
+- Un fichier de `stacks/common/` est partagé : bumper la config dans **staging et prod**.
+- **Checklist** : après avoir édité un fichier de config (`*.rules.yaml`, `*.config.yaml`, `*.cfg`,
+  `*.sh`, JSON de dashboard...), ouvrir le stack qui le référence et bumper la version avant de
+  committer.
+
 ## Conventions de nommage
 
 ### Stacks Swarm

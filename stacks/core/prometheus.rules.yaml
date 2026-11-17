@@ -145,8 +145,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "Mémoire proche de la limite : {{ $labels.container_label_com_docker_swarm_service_name }}"
-          description: "{{ $labels.container_label_com_docker_swarm_service_name }} utilise plus de 90% de sa limite mémoire (working set) depuis 5 minutes — risque d'OOM-kill imminent."
+          summary: "Mémoire proche de la limite : {{ $labels.container_label_com_docker_swarm_service_name }} sur {{ $labels.node }}"
+          description: "{{ $labels.container_label_com_docker_swarm_service_name }} sur {{ $labels.node }} utilise plus de 90% de sa limite mémoire (working set) depuis 5 minutes — risque d'OOM-kill imminent."
 
       - alert: NodeDiskSpaceLow
         expr: |
