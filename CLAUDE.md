@@ -46,7 +46,7 @@ du nom de la config** dans le fichier de stack, sinon `docker stack deploy` éch
 (« config changed, cannot update »).
 
 - Le nom est dans le bloc `configs:` en bas du stack (`name: prometheus_rules_v16` ou clé
-  `loki_rules_v6:`). La clé du service (`source:`) doit suivre si elle porte le nom versionné.
+  `loki_rules_v7:`). La clé du service (`source:`) doit suivre si elle porte le nom versionné.
 - Repérer toutes les configs concernées : `grep -rnE "_v[0-9]+" stacks/`.
 - Un fichier de `stacks/common/` est partagé : bumper la config dans **staging et prod**.
 - **Checklist** : après avoir édité un fichier de config (`*.rules.yaml`, `*.config.yaml`, `*.cfg`,
@@ -226,28 +226,23 @@ Prometheus le détecte automatiquement au prochain cycle de service discovery, p
 
 - `ContainerRestartLoop` / `ServiceReplicasDown` (Prometheus, cAdvisor + `up`)
 - `ContainerMemoryNearLimit` / `NodeDiskSpaceLow` (Prometheus, node-exporter/cAdvisor)
-- `HighErrorLogRate` (Loki ruler, sur le label `level` extrait des logs JSON — voir
-  ci-dessous) / `HighErrorLogRateLegacy` (idem mais par regex texte, pour les
-  services qui n'émettent pas encore de JSON)
+- `PgBackupFailed` / `PgWalArchiveFailed` / `PgBackupMissingStaging` (Loki ruler, logs des clusters pg-ha)
+
+Pas d'alerte sur le volume de logs WARN/ERROR/CRIT : elle ne remontait que du bruit de bots
+(404 de scan) et les conteneurs unhealthy sont déjà couverts par `ServiceReplicasDown`.
 
 Toutes routées vers Discord via Alertmanager. Ajouter une règle : éditer
 `stacks/core/prometheus.rules.yaml` (métriques) ou `stacks/core/loki.rules.yaml` (logs).
 
-### Logs JSON et détection d'erreurs
+### Logs JSON
 
 Les 5 services Python (loguru, `src/modules/logger/logger.py`) émettent leur sortie stdout en JSON
-(`serialize=True`) plutôt qu'en texte colorisé. C'est nécessaire pour l'alerting : en texte, une
-seule exception avec stack trace produit plusieurs lignes contenant `error`, et l'ancienne règle
-regex comptait chaque ligne comme une occurrence séparée (une seule exception pouvait déclencher
-`HighErrorLogRate`). En JSON, une exception = une ligne = un événement, stack trace incluse dans le
-champ `record.exception`.
+(`serialize=True`) plutôt qu'en texte colorisé : une exception = une ligne = un événement, stack
+trace incluse dans le champ `record.exception`.
 
 Promtail (`stacks/core/promtail.config.yaml`) parse cette sortie JSON pour en extraire le niveau et
-le poser en label Loki `level`. `HighErrorLogRate` compte les événements `level=~"ERROR|CRIT"` —
-plus fiable qu'un pattern texte. Les services qui n'émettent pas de JSON (les 4 apps Next.js, encore
-en `console.*` brut) n'ont pas ce label : ils restent couverts par `HighErrorLogRateLegacy`, qui
-reprend l'ancien comptage par ligne (moins précis, faux positifs possibles sur une stack trace
-multi-lignes) tant qu'ils ne sont pas migrés au JSON.
+le poser en label Loki `level`, utile pour filtrer dans Grafana/Loki (plus aucune alerte ne s'appuie
+dessus). Les apps Next.js (`console.*` brut) n'ont pas ce label.
 
 Migration en cours vers le wrapper commun `chauff-cmn` (`chauff_cmn.logging`), qui remplace le
 module maison dupliqué dans les 5 services. Le module maison produit un JSON imbriqué
