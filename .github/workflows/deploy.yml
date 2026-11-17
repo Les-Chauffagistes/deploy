@@ -158,6 +158,11 @@ jobs:
               "$stack"
           done
 
+      # Images anciennes. Ne supprime jamais une image référencée par une stack file
+      - name: Prune images on workload nodes
+        continue-on-error: true
+        run: .github/scripts/prune-images.sh stacks/prod/*.yml stacks/staging/*.yml
+
       - name: Verify convergence
         if: |
           inputs.force_deploy ||
