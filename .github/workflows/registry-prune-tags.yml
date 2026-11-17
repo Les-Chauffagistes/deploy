@@ -10,7 +10,7 @@ jobs:
     runs-on: [self-hosted, manager]
     steps:
       - uses: actions/checkout@v4
-      - run: .github/scripts/registry-prune-tags.sh stacks/prod/*.yml stacks/staging/*.yml
+      - run: .github/scripts/registry-prune-tags.sh stacks/prod/*.yml stacks/staging/*.yml stacks/core/*.yml
         env:
           REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}

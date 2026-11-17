@@ -3,7 +3,7 @@
 # stack files passés en argument (quel que soit leur âge) et les N plus
 # récents par repo. Ne libère pas d'espace : lancer registry-gc.sh après.
 #
-# Usage: registry-prune-tags.sh stacks/prod/*.yml stacks/staging/*.yml
+# Usage: registry-prune-tags.sh stacks/prod/*.yml stacks/staging/*.yml stacks/core/*.yml
 # Env requis: REGISTRY_USER, REGISTRY_PASSWORD
 set -uo pipefail
 
