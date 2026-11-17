@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/chauffassistant-site:sha-71d0cf0
+    image: 172.16.0.3:5000/chauffassistant-site:sha-507bae2
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
