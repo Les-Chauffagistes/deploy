@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/miner-shop:sha-0df6531
+    image: 172.16.0.3:5000/miner-shop:sha-cd0eb58
     # NE PAS copier `NODE_ENV: staging` des gabarits : l'entrypoint de l'image impose
     # NODE_ENV=production (mode de Next.js et de la validation de configuration).
     environment:
