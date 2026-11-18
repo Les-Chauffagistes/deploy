@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/pool-site:sha-e3c10f3
+    image: 172.16.0.3:5000/pool-site:sha-7063fcb
     environment:
       NODE_ENV: staging
       DB_USER: pool_site
@@ -11,6 +11,8 @@ services:
     secrets:
       - source: pool_site_staging_db_password
         target: db_password
+      - source: pool_site_staging_api_key
+        target: pool_site_api_key
     networks:
       - chauffagistes-net
       - traefik-public
