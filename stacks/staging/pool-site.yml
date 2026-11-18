@@ -54,3 +54,5 @@ networks:
 secrets:
   pool_site_staging_db_password:
     external: true
+  pool_site_staging_api_key:
+    external: true
