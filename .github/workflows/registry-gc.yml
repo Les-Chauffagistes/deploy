@@ -1,0 +1,13 @@
+name: Registry — garbage collect
+
+on:
+  schedule:
+    - cron: '23 3 * * 0'   # dimanche ~03h23 UTC, après registry-prune-tags
+  workflow_dispatch:
+
+jobs:
+  garbage-collect:
+    runs-on: [self-hosted, manager]
+    steps:
+      - uses: actions/checkout@v4
+      - run: .github/scripts/registry-gc.sh

@@ -14,13 +14,23 @@ services:
       - chauffagistes-net
     deploy:
       mode: global
+      # Par défaut Swarm met à jour une tâche à la fois : sur 6 nœuds, le rollout
+      # a pris ~3 min 40 et dépassé le timeout de 180 s de « Verify convergence »
+      # (CI en échec alors que le déploiement avait réussi). Tout en parallèle :
+      # le trou de scrape dure quelques secondes, bien en deçà des 10 min de
+      # ScrapeTargetDown.
+      update_config:
+        parallelism: 0
       resources:
         limits:
           cpus: "0.3"
           # 200M plafonnait : le working set de cAdvisor sur node02 a atteint la
           # limite (209,70 Mo sur 209,72) et il y était tué en boucle (exit 137),
           # d'où des dizaines de cibles distinctes qui tombaient chaque jour.
-          memory: 400M
+          # 400M plafonne à son tour sur workload-A (itrider, Docker 29.5.0) : working
+          # set entre 220 et 400 Mo, tué en boucle (exit 137) alors que les autres
+          # nœuds restent sous 130 Mo.
+          memory: 800M
       restart_policy:
         condition: on-failure
 

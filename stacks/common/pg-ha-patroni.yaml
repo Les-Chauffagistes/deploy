@@ -13,6 +13,12 @@ bootstrap:
     # Garde le primaire en écriture si etcd perd son quorum, tant qu'il voit
     # l'autre nœud Postgres.
     failsafe_mode: true
+    # Délai laissé à Postgres pour terminer son démarrage avant que Patroni
+    # ne démette le primaire (défaut Patroni : 210 s). Nos bases démarrent
+    # en 5-10 s normalement ; 30 s laisse de la marge pour un replay WAL
+    # après un arrêt moins propre, sans traîner des minutes en cas de panne
+    # réelle (ex: disque plein) avant que le replica ne prenne le relais.
+    start_timeout: 30
     postgresql:
       use_pg_rewind: true
       use_slots: true

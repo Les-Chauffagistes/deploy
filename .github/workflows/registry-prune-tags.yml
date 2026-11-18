@@ -1,0 +1,16 @@
+name: Registry — prune old tags
+
+on:
+  schedule:
+    - cron: '17 2 * * 0'   # dimanche ~02h17 UTC
+  workflow_dispatch:
+
+jobs:
+  prune-tags:
+    runs-on: [self-hosted, manager]
+    steps:
+      - uses: actions/checkout@v4
+      - run: .github/scripts/registry-prune-tags.sh stacks/prod/*.yml stacks/staging/*.yml stacks/core/*.yml
+        env:
+          REGISTRY_USER: ${{ secrets.REGISTRY_USER }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
