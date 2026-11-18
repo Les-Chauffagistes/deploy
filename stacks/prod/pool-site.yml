@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/pool-site:1.2.1
+    image: 172.16.0.3:5000/pool-site:1.2.4
     environment:
       NODE_ENV: production
       DB_USER: pool_site
@@ -11,6 +11,8 @@ services:
     secrets:
       - source: pool_site_prod_db_password
         target: db_password
+      - source: pool_site_prod_api_key
+        target: pool_site_api_key
     networks:
       - chauffagistes-net
       - traefik-public
@@ -50,4 +52,6 @@ networks:
 
 secrets:
   pool_site_prod_db_password:
+    external: true
+  pool_site_prod_api_key:
     external: true
