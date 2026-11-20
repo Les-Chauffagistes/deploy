@@ -785,8 +785,8 @@
         {
           "id": 107,
           "type": "gauge",
-          "title": "Disque (/)",
-          "description": "Aligné sur l'alerte NodeDiskSpaceLow (mountpoint=\"/host\", < 10% libre).",
+          "title": "Disque (partition la plus pleine)",
+          "description": "Partition la plus remplie du nœud (/, /var, /home...), mêmes filtres que les alertes NodeDiskSpace*. /mnt/bitcoin est exclu (alerte dédiée).",
           "gridPos": {
             "h": 4,
             "w": 3,
@@ -799,7 +799,7 @@
           },
           "targets": [
             {
-              "expr": "100 * (1 - (node_filesystem_avail_bytes{node=\"$node\", mountpoint=\"/host\"} / node_filesystem_size_bytes{node=\"$node\", mountpoint=\"/host\"}))"
+              "expr": "max(100 * (1 - (node_filesystem_avail_bytes{node=\"$node\", fstype!~\"tmpfs|overlay|squashfs|ramfs|fuse.*|vfat\", mountpoint!~\"/mnt/bitcoin|/boot/efi\"} / node_filesystem_size_bytes{node=\"$node\", fstype!~\"tmpfs|overlay|squashfs|ramfs|fuse.*|vfat\", mountpoint!~\"/mnt/bitcoin|/boot/efi\"})))"
             }
           ],
           "fieldConfig": {
