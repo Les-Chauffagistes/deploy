@@ -1,0 +1,52 @@
+services:
+  app:
+    image: 172.16.0.3:5000/coins-service:1.0.1
+    environment:
+      NODE_ENV: production
+      SERVER_PORT: "8095"
+      DB_HOST: pg-ha-prod_haproxy
+      DB_USER: coins_service
+      DB_NAME: coins_service
+      AUTH_SERVICE_URL: auth-service-back-prod_app:8080/auth
+    secrets:
+      - source: coins_prod_db_password
+        target: db_password
+      - source: coins_prod_api_key
+        target: api_key
+      - source: auth_prod_jwt_secret
+        target: jwt_secret
+    networks:
+      - chauffagistes-net
+      - pg-prod
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+networks:
+  chauffagistes-net:
+    external: true
+  pg-prod:
+    external: true
+
+secrets:
+  coins_prod_db_password:
+    external: true
+  coins_prod_api_key:
+    external: true
+  auth_prod_jwt_secret:
+    external: true
