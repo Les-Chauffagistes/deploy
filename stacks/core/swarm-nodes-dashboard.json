@@ -925,7 +925,7 @@
           "legendFormat": "{{device}} — reçu"
         },
         {
-          "expr": "-sum by (device) (rate(node_network_transmit_bytes_total{node=\"$node\", device!=\"lo\"}[5m]))",
+          "expr": "sum by (device) (rate(node_network_transmit_bytes_total{node=\"$node\", device!=\"lo\"}[5m]))",
           "legendFormat": "{{device}} — émis"
         }
       ],
