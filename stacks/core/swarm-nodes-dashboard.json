@@ -25,9 +25,10 @@
           "uid": "prometheus"
         },
         "query": {
-          "query": "label_values(swarm_node_info, swarm_node)",
+          "query": "query_result(max by (swarm_node) (swarm_node_info))",
           "refId": "node-variable"
         },
+        "regex": "/swarm_node=\"([^\"]+)\"/",
         "refresh": 2,
         "sort": 1,
         "multi": false,
