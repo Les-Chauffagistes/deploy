@@ -68,5 +68,5 @@ secrets:
     external: true
   auth_prod_jwt_secret:
     external: true
-  turnstile_secret_key:
+  contenders_prod_turnstile_secret_key:
     external: true
