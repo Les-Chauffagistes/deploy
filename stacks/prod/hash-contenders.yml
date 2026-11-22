@@ -51,7 +51,7 @@ services:
         - "traefik.http.routers.contenders.rule=Host(`contenders.chauffagistes-btc.fr`)"
         - "traefik.http.routers.contenders.entrypoints=websecure"
         - "traefik.http.routers.contenders.tls.certresolver=letsencrypt"
-        - "traefik.http.services.contendersloadbalancer.server.port=3000"
+        - "traefik.http.services.contenders.loadbalancer.server.port=3000"
 
 networks:
   chauffagistes-net:
