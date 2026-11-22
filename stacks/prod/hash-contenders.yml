@@ -14,7 +14,7 @@ services:
       DB_NAME: contenders
       DB_HOST: pg-ha-prod_haproxy
       BETS_CURRENCY: hashcoin
-      TURNSTILE_SITE_KEY: 0x4AAAAAAEjE68rVZyl_GnoF #TODO: get new one
+      TURNSTILE_SITE_KEY: 0x4AAAAAAGNawNkN3OXd4YV2
     secrets:
       - source: contenders_prod_db_password
         target: db_password
@@ -22,7 +22,8 @@ services:
         target: coins_api_key
       - source: auth_prod_jwt_secret
         target: jwt_secret
-      - source: turnstile_secret_key
+      - source: contenders_prod_turnstile_secret_key
+        target: turnstile_secret_key
     networks:
       - chauffagistes-net
       - traefik-public

@@ -22,7 +22,8 @@ services:
         target: coins_api_key
       - source: contenders_staging_jwt_secret
         target: jwt_secret
-      - source: turnstile_secret_key
+      - source: contenders_staging_turnstile_secret_key
+        target: turnstile_secret_key
     networks:
       - chauffagistes-net
       - traefik-public
