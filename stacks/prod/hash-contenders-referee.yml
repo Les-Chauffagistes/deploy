@@ -6,7 +6,7 @@ services:
       DB_USER: contenders_referee
       DB_HOST: pg-ha-prod_haproxy
       DB_NAME: contenders_referee
-      API_URL: wss://api.prod.chauffagistes-btc.fr
+      API_URL: wss://api.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
       FRONTEND_URL: https://contenders.chauffagistes-btc.fr
       POOL_API_URL: https://api.chauffagistes-btc.fr
