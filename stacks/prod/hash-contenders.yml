@@ -1,0 +1,71 @@
+services:
+  app:
+    image: 172.16.0.3:5000/hash-contenders:1.0.0
+    environment:
+      HOSTNAME: 0.0.0.0
+      API_URL: https://api.contenders.chauffagistes-btc.fr
+      WSS_URL: wss://api.contenders.chauffagistes-btc.fr
+      BASE_URL: https://contenders.chauffagistes-btc.fr
+      AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
+      AUTH_URL: https://auth.chauffagistes-btc.fr
+      COINS_API_URL: http://coins-service-prod_app:8095
+      BITCOIN_API_URL: https://bitcoin.chauffagistes-btc.fr
+      DB_USER: contenders
+      DB_NAME: contenders
+      DB_HOST: pg-ha-prod_haproxy
+      BETS_CURRENCY: hashcoin
+      TURNSTILE_SITE_KEY: 0x4AAAAAAEjE68rVZyl_GnoF #TODO: get new one
+    secrets:
+      - source: contenders_prod_db_password
+        target: db_password
+      - source: coins_prod_api_key
+        target: coins_api_key
+      - source: auth_prod_jwt_secret
+        target: jwt_secret
+      - source: turnstile_secret_key
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - pg-prod
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.contenders.rule=Host(`contenders.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.contenders.entrypoints=websecure"
+        - "traefik.http.routers.contenders.tls.certresolver=letsencrypt"
+        - "traefik.http.services.contendersloadbalancer.server.port=3000"
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  pg-prod:
+    external: true
+
+secrets:
+  contenders_prod_db_password:
+    external: true
+  coins_prod_api_key:
+    external: true
+  auth_prod_jwt_secret:
+    external: true
+  turnstile_secret_key:
+    external: true
