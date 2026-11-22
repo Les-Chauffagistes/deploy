@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/hash-contenders:sha-62cddfc
+    image: 172.16.0.3:5000/hash-contenders:sha-a034f51
     environment:
       HOSTNAME: 0.0.0.0
       API_URL: https://api.contenders.staging.chauffagistes-btc.fr
@@ -22,7 +22,8 @@ services:
         target: coins_api_key
       - source: contenders_staging_jwt_secret
         target: jwt_secret
-      - source: turnstile_secret_key
+      - source: contenders_staging_turnstile_secret_key
+        target: turnstile_secret_key
     networks:
       - chauffagistes-net
       - traefik-public

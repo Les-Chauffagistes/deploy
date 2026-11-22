@@ -1,0 +1,59 @@
+services:
+  app:
+    image: 172.16.0.3:5000/hash-contenders-referee:1.0.0
+    environment:
+      SERVER_PORT: "8095"
+      DB_USER: contenders_referee
+      DB_HOST: pg-ha-prod_haproxy
+      DB_NAME: contenders_referee
+      API_URL: wss://api.prod.chauffagistes-btc.fr
+      AUTH_API_URL: https://api.auth.chauffagistes-btc.fr
+      FRONTEND_URL: https://contenders.chauffagistes-btc.fr
+      POOL_API_URL: https://api.chauffagistes-btc.fr
+    secrets:
+      - source: referee_prod_db_password
+        target: db_password
+      - source: auth_prod_jwt_secret
+        target: jwt_secret
+    networks:
+      - chauffagistes-net
+      - traefik-public
+      - pg-prod
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: start-first
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.referee.rule=Host(`api.contenders.chauffagistes-btc.fr`)"
+        - "traefik.http.routers.referee.entrypoints=websecure"
+        - "traefik.http.routers.referee.tls.certresolver=letsencrypt"
+        - "traefik.http.services.referee.loadbalancer.server.port=8095"
+
+networks:
+  chauffagistes-net:
+    external: true
+  traefik-public:
+    external: true
+  pg-prod:
+    external: true
+
+secrets:
+  referee_prod_db_password:
+    external: true
+  auth_prod_jwt_secret:
+    external: true

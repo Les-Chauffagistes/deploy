@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/hash-contenders-referee:sha-feb5c96
+    image: 172.16.0.3:5000/hash-contenders-referee:1.0.0
     environment:
       SERVER_PORT: "8095"
       DB_USER: contenders_referee
@@ -13,8 +13,6 @@ services:
     secrets:
       - source: referee_staging_db_password
         target: db_password
-      - source: referee_staging_api_token
-        target: api_token
       - source: contenders_staging_jwt_secret
         target: jwt_secret
     networks:
