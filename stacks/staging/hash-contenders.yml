@@ -69,5 +69,5 @@ secrets:
     external: true
   contenders_staging_jwt_secret:
     external: true
-  turnstile_secret_key:
+  contenders_staging_turnstile_secret_key:
     external: true
