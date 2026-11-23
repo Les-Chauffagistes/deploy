@@ -3,10 +3,6 @@ version: "3.9"
 services:
   app:
     image: 172.16.0.3:5000/bitcoin-service:1.1.0
-    command: >
-      sh -c "
-      export BITCOIN_RPC_PASSWORD=$$(cat /run/secrets/bitcoin_service_rpc_password) &&
-      python main.py"
     environment:
       SERVER_PORT: "8086"
       BITCOIN_NETWORK: "mainnet"
@@ -35,6 +31,7 @@ services:
     networks:
       - chauffagistes-net
       - traefik-public
+      - pg-prod
     deploy:
       replicas: 1
       placement:
@@ -64,6 +61,8 @@ networks:
   chauffagistes-net:
     external: true
   traefik-public:
+    external: true
+  pg-prod:
     external: true
 
 secrets:
