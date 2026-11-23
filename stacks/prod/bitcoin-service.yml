@@ -10,8 +10,8 @@ services:
       BITCOIN_RPC_PORT: "8332"
       BITCOIN_RPC_USER: "bitcoinrpc"
       DB_HOST: pg-ha-prod_haproxy
-      DB_USER: bitcoin_services
-      DB_NAME: bitcoin_services
+      DB_USER: bitcoin_service
+      DB_NAME: bitcoin_service
       SHOP_WEBHOOK_URL: http://miner-shop-prod_app:3000/api/internal/payments
       API_TOKEN_FILE: /run/secrets/api_token
       XPUB_FILE: /run/secrets/xpub
