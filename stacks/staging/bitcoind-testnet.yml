@@ -1,0 +1,52 @@
+# Nœud Bitcoin Core de TEST (testnet4) du staging : sert à bitcoin-payment-staging (paiements de recette).
+# Le nœud mainnet du staging/prod (192.168.1.204, systemd) reste réservé aux données de chaîne.
+# Élagué : un wallet watch-only neuf n'a pas d'historique à rescanner. RPC joignable seulement sur
+# chauffagistes-net, derrière le mot de passe ; aucun port publié (connexions P2P sortantes seulement).
+#
+# Secret à créer sur le manager :
+#   openssl rand -hex 24 | tr -d '\n' | docker secret create bitcoind_testnet_staging_rpc_password -
+
+services:
+  node:
+    image: bitcoin/bitcoin:31.2   # même version que le nœud de production
+    # bitcoind ne lit pas les secrets Docker : le mot de passe est injecté par le wrapper, puis l'entrypoint
+    # de l'image (datadir, droits, gosu) prend le relais. Le RPC de testnet4 écoute sur 48332.
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        exec /entrypoint.sh bitcoind -testnet4 -listen=0 -prune=550 -dbcache=100
+        -rpcuser=bitcoinrpc -rpcpassword="$$(cat /run/secrets/bitcoind_testnet_staging_rpc_password)"
+        -rpcallowip=0.0.0.0/0 -rpcbind=0.0.0.0
+    secrets:
+      - bitcoind_testnet_staging_rpc_password
+    volumes:
+      - bitcoind-testnet-staging-data:/home/bitcoin/.bitcoin
+    networks:
+      - chauffagistes-net
+    stop_grace_period: 60s   # laisse bitcoind vider son cache proprement
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      update_config:
+        order: stop-first   # une seule instance sur le datadir
+      restart_policy:
+        condition: any
+        delay: 5s
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+volumes:
+  bitcoind-testnet-staging-data:
+
+networks:
+  chauffagistes-net:
+    external: true
+
+secrets:
+  bitcoind_testnet_staging_rpc_password:
+    external: true

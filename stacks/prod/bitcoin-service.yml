@@ -2,19 +2,36 @@ version: "3.9"
 
 services:
   app:
-    image: 172.16.0.3:5000/bitcoin-service:1.0.3
+    image: 172.16.0.3:5000/bitcoin-service:1.1.0
     command: >
       sh -c "
       export BITCOIN_RPC_PASSWORD=$$(cat /run/secrets/bitcoin_service_rpc_password) &&
       python main.py"
     environment:
       SERVER_PORT: "8086"
+      BITCOIN_NETWORK: "mainnet"
       BITCOIN_RPC_HOST: "192.168.1.204"
       BITCOIN_RPC_PORT: "8332"
       BITCOIN_RPC_USER: "bitcoinrpc"
+      DB_HOST: pg-ha-prod_haproxy
+      DB_USER: bitcoin_services
+      DB_NAME: bitcoin_services
+      SHOP_WEBHOOK_URL: http://miner-shop-prod_app:3000/api/internal/payments
+      API_TOKEN_FILE: /run/secrets/api_token
+      XPUB_FILE: /run/secrets/xpub
+      BITCOIN_RPC_PASSWORD_FILE: /run/secrets/rpc_password
+      SHOP_WEBHOOK_SECRET_FILE: /run/secrets/shop_webhook_secret
     secrets:
+      - source: bitcoin_service_prod_db_password
+        target: db_password
+      - source: bitcoin_service_prod_api_token
+        target: api_token
+      - source: bitcoin_service_prod_xpub
+        target: xpub
       - source: bitcoin_service_prod_rpc_password
-        target: bitcoin_service_rpc_password
+        target: rpc_password
+      - source: miner_shop_prod_payment_webhook_secret
+        target: shop_webhook_secret
     networks:
       - chauffagistes-net
       - traefik-public
@@ -43,12 +60,20 @@ services:
         - "traefik.http.routers.bitcoin-service.tls.certresolver=letsencrypt"
         - "traefik.http.services.bitcoin-service.loadbalancer.server.port=8086"
 
-secrets:
-  bitcoin_service_prod_rpc_password:
-    external: true
-
 networks:
   chauffagistes-net:
     external: true
   traefik-public:
+    external: true
+
+secrets:
+  bitcoin_service_prod_db_password:
+    external: true
+  bitcoin_service_prod_api_token:
+    external: true
+  bitcoin_service_prod_xpub:
+    external: true
+  bitcoin_service_prod_rpc_password:
+    external: true
+  miner_shop_prod_payment_webhook_secret:
     external: true

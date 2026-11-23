@@ -1,17 +1,17 @@
 services:
   app:
-    image: 172.16.0.3:5000/miner-shop:sha-1d4c278
-    # NE PAS copier `NODE_ENV: staging` des gabarits : l'entrypoint de l'image impose
-    # NODE_ENV=production (mode de Next.js et de la validation de configuration).
+    image: 172.16.0.3:5000/miner-shop:sha-afe9a17
     environment:
       PUBLIC_URL: https://miner-shop.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
       AUTH_FRONT_URL: https://auth.staging.chauffagistes-btc.fr
       BACKOFFICE_USER_IDS: "90,92,88,271,272"
-      # Secrets : l'entrypoint lit le fichier monté par Swarm (/run/secrets/<cible>)
       DATABASE_URL_FILE: /run/secrets/database_url
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       PAYMENT_WEBHOOK_SECRET_FILE: /run/secrets/payment_webhook_secret
+      # bitcoin-service (testnet4) : sans ces deux variables, le paiement est simulé
+      PAYMENT_SERVICE_URL: http://bitcoin-payment-staging_app:8086
+      PAYMENT_SERVICE_TOKEN_FILE: /run/secrets/payment_service_token
       # Facultatifs (paiement simulé) : PAYMENT_BTC_PRICE_EUR_CENTS, PAYMENT_REFUND_NETWORK_FEE_SATS
     secrets:
       - source: miner_shop_staging_database_url
@@ -21,6 +21,9 @@ services:
         target: jwt_secret
       - source: miner_shop_staging_payment_webhook_secret
         target: payment_webhook_secret
+      # API_TOKEN de bitcoin-service : secret déjà existant, partagé
+      - source: bitcoin_service_staging_api_token
+        target: payment_service_token
     networks:
       - chauffagistes-net
       - traefik-public
@@ -72,4 +75,6 @@ secrets:
   miner_shop_staging_payment_webhook_secret:
     external: true
   auth_staging_jwt_secret:
+    external: true
+  bitcoin_service_staging_api_token:
     external: true
