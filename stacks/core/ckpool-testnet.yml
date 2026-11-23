@@ -21,7 +21,6 @@ services:
     entrypoint: ["/bin/sh", "/ckpool-testnet.entrypoint.sh"]
     environment:
       MINER_ADDRESS: tb1q3ggmzxxn9td847lts7j5wnq0qmyqcu4ccwh8v5
-      TARGET_TXID: 2c3d49cc825280a77fbf79be0fd2ab59281d21e487cff1cf090e49eea20295f7
       MAX_BLOCKS: "1"
       RPC_HOST: bitcoind-testnet-staging_node
       RPC_PORT: "48332"
