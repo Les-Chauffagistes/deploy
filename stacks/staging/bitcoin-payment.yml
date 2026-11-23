@@ -1,0 +1,84 @@
+# Paiements Bitcoin du staging : même image que bitcoin-service, autre configuration (testnet4, base propre).
+# bitcoin-service-staging reste sur le nœud mainnet pour les données de chaîne ; celui-ci est un second
+# déploiement dédié aux factures et au webhook de paiement du shop.
+#
+# Joignable seulement depuis chauffagistes-net (le shop l'appelle en bitcoin-payment-staging_app:8086),
+# pas de Traefik : /v1/invoices n'est pas exposé sur Internet.
+#
+# Secrets (créés sur le manager) :
+#   bitcoin_service_staging_db_password  : mot de passe du rôle bitcoin_service (l'entrypoint construit DATABASE_URL)
+#   bitcoin_service_staging_api_token    : openssl rand -hex 32 | tr -d '\n'  (le shop utilise la même valeur)
+#   bitcoin_service_staging_xpub         : clé publique étendue testnet4 (tpub…/vpub…), jamais de clé privée
+#   bitcoind_testnet_staging_rpc_password: voir bitcoind-testnet.yml
+#   miner_shop_staging_payment_webhook_secret : déjà créé pour le shop, même valeur des deux côtés
+
+services:
+  app:
+    image: 172.16.0.3:5000/bitcoin-service:sha-8839f33
+    environment:
+      SERVER_PORT: "8086"
+      LOG_LEVEL: INFO
+      BITCOIN_NETWORK: testnet4
+      BITCOIN_RPC_HOST: bitcoind-testnet-staging_node
+      BITCOIN_RPC_PORT: "48332"
+      BITCOIN_RPC_USER: bitcoinrpc
+      BITCOIN_RPC_WALLET: bitcoin-payment-staging
+      DB_HOST: pg-ha-staging_haproxy
+      DB_USER: bitcoin_service
+      DB_NAME: bitcoin_service
+      SHOP_WEBHOOK_URL: http://miner-shop-staging_app:3000/api/internal/payments
+      API_TOKEN_FILE: /run/secrets/api_token
+      XPUB_FILE: /run/secrets/xpub
+      BITCOIN_RPC_PASSWORD_FILE: /run/secrets/rpc_password
+      SHOP_WEBHOOK_SECRET_FILE: /run/secrets/shop_webhook_secret
+    secrets:
+      - source: bitcoin_service_staging_db_password
+        target: db_password
+      - source: bitcoin_service_staging_api_token
+        target: api_token
+      - source: bitcoin_service_staging_xpub
+        target: xpub
+      - source: bitcoind_testnet_staging_rpc_password
+        target: rpc_password
+      - source: miner_shop_staging_payment_webhook_secret
+        target: shop_webhook_secret
+    networks:
+      - chauffagistes-net
+      - pg-staging
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.workload == true
+      update_config:
+        order: stop-first   # jamais deux versions en même temps sur le même schéma
+        monitor: 60s
+        failure_action: rollback
+      rollback_config:
+        order: stop-first
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+networks:
+  chauffagistes-net:
+    external: true
+  pg-staging:
+    external: true
+
+secrets:
+  bitcoin_service_staging_db_password:
+    external: true
+  bitcoin_service_staging_api_token:
+    external: true
+  bitcoin_service_staging_xpub:
+    external: true
+  bitcoind_testnet_staging_rpc_password:
+    external: true
+  miner_shop_staging_payment_webhook_secret:
+    external: true
