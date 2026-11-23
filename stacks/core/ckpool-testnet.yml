@@ -1,0 +1,67 @@
+# Pool ckpool solo sur testnet4 pour miner UN bloc avec un Bitaxe et y faire entrer une transaction coincée
+# (envoi du faucet à 1 sat/vB que personne n'accélérera). Outil ponctuel : retirer ce fichier et son .sh une fois
+# la transaction confirmée (--prune supprime alors le service).
+#
+# Bitaxe (LAN) : stratum+tcp://<IP LAN de l'iMac hugo>:3334, user = MINER_ADDRESS ci-dessous, mot de passe "x".
+#
+# Pas de redémarrage, et c'est voulu : un pool relancé re-minerait des blocs. Trois verrous :
+#   - restart_policy: none ;
+#   - le script ne termine jamais (il finit en `sleep infinity`) : le conteneur reste "Running" donc la
+#     vérification de convergence de la CI est verte, et Swarm n'a rien à relancer ;
+#   - le script s'arrête de miner dès +MAX_BLOCKS blocs ou quand la transaction quitte le mempool, et ne
+#     redémarre pas ckpool si elle est déjà minée.
+# Un `docker stack deploy` inchangé ne recrée pas la tâche. Changer l'entrypoint exige de bumper la config (_vN).
+#
+# Premier démarrage : ~3 min de compilation (le pool n'écoute pas avant). `docker service logs core_ckpool-testnet`.
+# Secret réutilisé : bitcoind_testnet_staging_rpc_password (voir staging/bitcoind-testnet.yml).
+
+services:
+  ckpool-testnet:
+    image: debian:bookworm-slim
+    entrypoint: ["/bin/sh", "/ckpool-testnet.entrypoint.sh"]
+    environment:
+      MINER_ADDRESS: tb1q3ggmzxxn9td847lts7j5wnq0qmyqcu4ccwh8v5
+      TARGET_TXID: 2c3d49cc825280a77fbf79be0fd2ab59281d21e487cff1cf090e49eea20295f7
+      MAX_BLOCKS: "1"
+      RPC_HOST: bitcoind-testnet-staging_node
+      RPC_PORT: "48332"
+      RPC_USER: bitcoinrpc
+    configs:
+      - source: ckpool_testnet_entrypoint_v1
+        target: /ckpool-testnet.entrypoint.sh
+        mode: 0555
+    secrets:
+      - source: bitcoind_testnet_staging_rpc_password
+        target: rpc_password
+    ports:
+      # mode host : le Bitaxe est sur le LAN de l'iMac, pas besoin du routing mesh.
+      - target: 3334
+        published: 3334
+        protocol: tcp
+        mode: host
+    networks:
+      - chauffagistes-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.chauffagistes.host == hugo
+      restart_policy:
+        condition: none
+      resources:
+        limits:
+          cpus: "2.0"      # la compilation, puis ~rien
+          memory: 1G
+
+configs:
+  # Configs Swarm immuables : bumper le nom ici ET dans le service à chaque modification du .sh.
+  ckpool_testnet_entrypoint_v1:
+    file: ./ckpool-testnet.entrypoint.sh
+
+networks:
+  chauffagistes-net:
+    external: true
+
+secrets:
+  bitcoind_testnet_staging_rpc_password:
+    external: true
