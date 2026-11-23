@@ -1,6 +1,6 @@
 services:
   app:
-    image: 172.16.0.3:5000/miner-shop:sha-5cde0e7
+    image: 172.16.0.3:5000/miner-shop:sha-02fa246
     environment:
       PUBLIC_URL: https://miner-shop.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
