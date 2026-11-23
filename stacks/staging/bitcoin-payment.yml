@@ -14,7 +14,7 @@
 
 services:
   app:
-    image: 172.16.0.3:5000/bitcoin-service:sha-8839f33
+    image: 172.16.0.3:5000/bitcoin-service:sha-8a2b63f
     environment:
       SERVER_PORT: "8086"
       LOG_LEVEL: INFO
