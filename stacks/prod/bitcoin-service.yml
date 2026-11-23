@@ -5,7 +5,7 @@ services:
     image: 172.16.0.3:5000/bitcoin-service:1.1.0
     environment:
       SERVER_PORT: "8086"
-      BITCOIN_NETWORK: "mainnet"
+      BITCOIN_NETWORK: "main"
       BITCOIN_RPC_HOST: "192.168.1.204"
       BITCOIN_RPC_PORT: "8332"
       BITCOIN_RPC_USER: "bitcoinrpc"
