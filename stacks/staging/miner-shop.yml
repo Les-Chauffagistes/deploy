@@ -1,14 +1,11 @@
 services:
   app:
-    image: 172.16.0.3:5000/miner-shop:sha-1d4c278
-    # NE PAS copier `NODE_ENV: staging` des gabarits : l'entrypoint de l'image impose
-    # NODE_ENV=production (mode de Next.js et de la validation de configuration).
+    image: 172.16.0.3:5000/miner-shop:sha-5cde0e7
     environment:
       PUBLIC_URL: https://miner-shop.staging.chauffagistes-btc.fr
       AUTH_API_URL: https://api.auth.staging.chauffagistes-btc.fr
       AUTH_FRONT_URL: https://auth.staging.chauffagistes-btc.fr
       BACKOFFICE_USER_IDS: "90,92,88,271,272"
-      # Secrets : l'entrypoint lit le fichier monté par Swarm (/run/secrets/<cible>)
       DATABASE_URL_FILE: /run/secrets/database_url
       JWT_SECRET_FILE: /run/secrets/jwt_secret
       PAYMENT_WEBHOOK_SECRET_FILE: /run/secrets/payment_webhook_secret
