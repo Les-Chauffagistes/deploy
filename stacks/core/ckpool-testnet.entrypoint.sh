@@ -3,11 +3,13 @@
 # Ce script ne se termine JAMAIS : quoi qu'il arrive (succès, erreur, tx déjà minée) il finit en veille, pour
 # que Swarm n'ait aucune raison de relancer le conteneur (un pool relancé re-minerait).
 #
-# Variables : MINER_ADDRESS (tb1…), TARGET_TXID, MAX_BLOCKS (défaut 1), RPC_HOST, RPC_PORT, RPC_USER.
+# Variables : MINER_ADDRESS (tb1…), TARGET_TXID (facultatif), MAX_BLOCKS (défaut 1), RPC_HOST, RPC_PORT, RPC_USER.
+# Sans TARGET_TXID : on mine simplement un bloc, sans vérifier ni injecter de transaction.
 set -u
 
 CKPOOL_COMMIT=be3e1e0796fbea60b7792a9b62fc2614764e1fc0
 MAX_BLOCKS="${MAX_BLOCKS:-1}"
+TARGET_TXID="${TARGET_TXID:-}"
 RPC_URL="http://${RPC_HOST}:${RPC_PORT}"
 
 idle() { echo "== $1 =="; echo "Conteneur en veille : retirer ckpool-testnet de stacks/core/ pour le supprimer."; exec sleep infinity; }
@@ -40,15 +42,15 @@ until info="$(rpc getblockchaininfo)" && [ "$(echo "$info" | jq -r .result.initi
 done
 [ "$(echo "$info" | jq -r .result.chain)" = "testnet4" ] || idle "Le nœud n'est pas sur testnet4"
 
-# 3. La transaction doit être dans le mempool du nœud : on l'y injecte depuis mempool.space si besoin.
-if ! in_mempool; then
+# 3. Si une transaction est visée, elle doit être dans le mempool du nœud : on l'y injecte depuis mempool.space si besoin.
+if [ -n "$TARGET_TXID" ] && ! in_mempool; then
   hex="$(curl -sf "https://mempool.space/testnet4/api/tx/${TARGET_TXID}/hex")" || hex=""
   [ -n "$hex" ] && rpc sendrawtransaction "[\"$hex\"]" >/dev/null 2>&1
   in_mempool || idle "Transaction absente du mempool et non injectable (déjà minée ? déjà dépensée ?)"
 fi
 
 start_height="$(echo "$info" | jq -r .result.blocks)"
-echo "Départ à la hauteur $start_height ; arrêt à +$MAX_BLOCKS bloc(s) ou quand ${TARGET_TXID} quitte le mempool."
+echo "Départ à la hauteur $start_height ; arrêt à +$MAX_BLOCKS bloc(s)${TARGET_TXID:+ ou quand $TARGET_TXID quitte le mempool}."
 
 cat > /tmp/ckpool.conf <<CONF
 {
@@ -75,7 +77,7 @@ while kill -0 "$pool_pid" 2>/dev/null; do
     kill "$pool_pid" 2>/dev/null; wait "$pool_pid" 2>/dev/null
     idle "Bloc trouvé (hauteur $height) : pool arrêté"
   fi
-  if ! in_mempool; then
+  if [ -n "$TARGET_TXID" ] && ! in_mempool; then
     kill "$pool_pid" 2>/dev/null; wait "$pool_pid" 2>/dev/null
     idle "Transaction sortie du mempool : pool arrêté"
   fi
